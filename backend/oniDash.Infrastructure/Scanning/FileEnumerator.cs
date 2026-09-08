@@ -11,30 +11,17 @@ namespace oniDash.Infrastructure.Scanning;
 
 /// <summary>
 /// Streams files below a root directory. Skips hidden and system entries (by attribute),
-/// well-known junk directories (recycler, system volume information, node_modules, …),
-/// and any directory name excluded via options. Never follows reparse points (junctions,
-/// symlinks) so cycles and external volumes are not traversed. Read-only: nothing on disk
-/// is created, modified, or deleted (AGENTS.md rule 11).
+/// well-known junk directories, and any directory name excluded via options. Never follows
+/// reparse points (junctions, symlinks) so cycles and external volumes are not traversed.
+/// Read-only: nothing on disk is created, modified, or deleted.
 /// </summary>
 public sealed class FileEnumerator : IFileEnumerator
 {
-    // Junk/system directories skipped everywhere by name (case-insensitive).
     private static readonly HashSet<string> JunkDirectoryNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "$recycle.bin",
-        "system volume information",
-        "$windows.~ws",
-        "$windows.~bt",
-        "windows",
-        "program files",
-        "program files (x86)",
-        "programdata",
-        "appdata",
-        "node_modules",
-        ".git",
-        ".svn",
-        ".hg",
-        "__macosx",
+        "$recycle.bin", "system volume information", "$windows.~ws", "$windows.~bt",
+        "windows", "program files", "program files (x86)", "programdata", "appdata",
+        "node_modules", ".git", ".svn", ".hg", "__macosx",
     };
 
     public async IAsyncEnumerable<DiscoveredFile> EnumerateAsync(
@@ -42,8 +29,6 @@ public sealed class FileEnumerator : IFileEnumerator
         ScanFilterOptions options,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // Fail fast on a vanished root: the scan must report an error instead of
-        // silently marking every indexed file as missing.
         if (!Directory.Exists(rootPath))
         {
             throw new DirectoryNotFoundException($"Source folder '{rootPath}' does not exist.");
@@ -70,7 +55,8 @@ public sealed class FileEnumerator : IFileEnumerator
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                // The file vanished or cannot be stat'ed: skip it, the next scan re-checks.
+                // An individual file can disappear during a scan; the next scan will
+                // reconcile it. Directory-level failures are not swallowed below.
                 continue;
             }
 
@@ -78,19 +64,12 @@ public sealed class FileEnumerator : IFileEnumerator
                 RelativePath: ToRelativePath(rootPath, file.FullName),
                 Extension: extension,
                 SizeBytes: info.Length,
-                // Quantized to whole milliseconds: SQLite stores DateTimeOffset at coarser
-                // precision than NTFS, and without quantization every re-scan would see
-                // every file as changed.
                 LastWriteTimeUtc: QuantizeToMilliseconds(new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero)));
         }
 
         await Task.CompletedTask.ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Manual stack walk instead of EnumerationOptions-compatible enumerator: gives precise
-    /// control over hidden/system skipping, reparse-point avoidance, and access errors.
-    /// </summary>
     private static IEnumerable<FileInfo> EnumerateFilesSafe(
         string rootPath,
         HashSet<string> excludedDirectories,
@@ -103,20 +82,7 @@ public sealed class FileEnumerator : IFileEnumerator
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            DirectoryInfo directory;
-            try
-            {
-                directory = pending.Pop();
-                if (directory.FullName.Length >= 240)
-                {
-                    continue;
-                }
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-            {
-                continue;
-            }
-
+            var directory = pending.Pop();
             FileSystemInfo[] entries;
             try
             {
@@ -124,7 +90,9 @@ public sealed class FileEnumerator : IFileEnumerator
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
             {
-                continue; // Unreadable subtree: skip quietly, do not fail the whole scan.
+                // Do not silently omit a subtree. ScanService must fail before
+                // reconciliation, otherwise valid indexed files could be marked missing.
+                throw new IOException($"Could not fully enumerate source directory '{directory.FullName}'.", ex);
             }
 
             foreach (var entry in entries)
@@ -155,17 +123,15 @@ public sealed class FileEnumerator : IFileEnumerator
         }
     }
 
-    private static string ToRelativePath(string rootPath, string fullPath)
-    {
-        var relative = Path.GetRelativePath(rootPath, fullPath);
-        return relative.Replace('\\', '/');
-    }
+    private static string ToRelativePath(string rootPath, string fullPath) =>
+        Path.GetRelativePath(rootPath, fullPath).Replace('\\', '/');
 
     private static DateTimeOffset QuantizeToMilliseconds(DateTimeOffset value) =>
         new(value.UtcTicks - (value.UtcTicks % TimeSpan.TicksPerMillisecond), TimeSpan.Zero);
 
     private static HashSet<string> NormalizeExtensions(IReadOnlyList<string> extensions) =>
-        extensions
-            .Select(extension => extension.StartsWith('.') ? extension.ToLowerInvariant() : $".{extension.ToLowerInvariant()}")
+        extensions.Select(extension => extension.StartsWith('.')
+                ? extension.ToLowerInvariant()
+                : $".{extension.ToLowerInvariant()}")
             .ToHashSet();
 }
