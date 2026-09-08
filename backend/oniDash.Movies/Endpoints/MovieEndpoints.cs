@@ -23,7 +23,8 @@ public static class MovieEndpoints
             if (libraryId is not null) query = query.Where(m => m.LibraryId == libraryId);
             if (watched is not null) query = query.Where(m => m.Watched == watched);
             var list = await query.OrderBy(m => m.NormalizedTitle).ThenBy(m => m.Year)
-                .Select(m => ToSummary(m)).ToListAsync(ct);
+                .Select(m => new MovieSummary(m.Id, m.MediaItemId, m.Title, m.Year, m.DurationSeconds, m.Container,
+                    m.PosterBlob != null, m.Watched, m.WatchProgressSeconds, m.WatchedAtUtc)).ToListAsync(ct);
             return Results.Ok(list);
         });
         movies.MapGet("/continue", async (MoviesDbContext db, Guid? libraryId, CancellationToken ct) =>
@@ -31,7 +32,8 @@ public static class MovieEndpoints
             var query = db.Movies.AsNoTracking().Where(m => !m.Watched && m.WatchProgressSeconds > 0);
             if (libraryId is not null) query = query.Where(m => m.LibraryId == libraryId);
             var list = await query.OrderByDescending(m => m.WatchProgressSeconds).ThenBy(m => m.NormalizedTitle)
-                .Select(m => ToSummary(m)).ToListAsync(ct);
+                .Select(m => new MovieSummary(m.Id, m.MediaItemId, m.Title, m.Year, m.DurationSeconds, m.Container,
+                    m.PosterBlob != null, m.Watched, m.WatchProgressSeconds, m.WatchedAtUtc)).ToListAsync(ct);
             return Results.Ok(list);
         });
         movies.MapGet("/{movieId:guid}/poster", async (MoviesDbContext db, Guid movieId, CancellationToken ct) =>
@@ -61,7 +63,8 @@ public static class MovieEndpoints
             else movie.WatchProgressSeconds = position;
             movie.UpdatedAtUtc = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
-            return Results.Ok(ToSummary(movie));
+            return Results.Ok(new MovieSummary(movie.Id, movie.MediaItemId, movie.Title, movie.Year, movie.DurationSeconds,
+                movie.Container, movie.PosterBlob != null, movie.Watched, movie.WatchProgressSeconds, movie.WatchedAtUtc));
         });
         movies.MapPost("/{movieId:guid}/watched", async (MoviesDbContext db, Guid movieId, WatchedRequest request, CancellationToken ct) =>
         {
@@ -72,7 +75,8 @@ public static class MovieEndpoints
             movie.WatchProgressSeconds = null;
             movie.UpdatedAtUtc = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
-            return Results.Ok(ToSummary(movie));
+            return Results.Ok(new MovieSummary(movie.Id, movie.MediaItemId, movie.Title, movie.Year, movie.DurationSeconds,
+                movie.Container, movie.PosterBlob != null, movie.Watched, movie.WatchProgressSeconds, movie.WatchedAtUtc));
         });
         movies.MapPost("/reindex", async (MovieReindexService reindex, Guid? libraryId, CancellationToken ct) =>
         {
@@ -81,10 +85,6 @@ public static class MovieEndpoints
         });
         return app;
     }
-
-    private static MovieSummary ToSummary(Movie movie) => new(
-        movie.Id, movie.MediaItemId, movie.Title, movie.Year, movie.DurationSeconds, movie.Container,
-        movie.PosterBlob != null, movie.Watched, movie.WatchProgressSeconds, movie.WatchedAtUtc);
 
     public sealed record ProgressRequest(double PositionSeconds);
     public sealed record WatchedRequest(bool Watched);
