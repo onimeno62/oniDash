@@ -7,22 +7,28 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using oniDash.Movies.Cataloging;
-using oniDash.Movies.Domain;
 using oniDash.Movies.Persistence;
 
 namespace oniDash.Movies.Endpoints;
 
 public static class MovieEndpoints
 {
+    private const int DefaultPageSize = 100;
+    private const int MaxPageSize = 200;
+    private const int ContinuePageSize = 20;
+
     public static IEndpointRouteBuilder MapMovieEndpoints(this IEndpointRouteBuilder app)
     {
         var movies = app.MapGroup("/api/movies").WithTags("Movies");
-        movies.MapGet("/", async (MoviesDbContext db, Guid? libraryId, bool? watched, CancellationToken ct) =>
+        movies.MapGet("/", async (MoviesDbContext db, Guid? libraryId, bool? watched, int? limit, int? offset, CancellationToken ct) =>
         {
+            var pageSize = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
+            var skip = Math.Max(0, offset ?? 0);
             var query = db.Movies.AsNoTracking();
             if (libraryId is not null) query = query.Where(m => m.LibraryId == libraryId);
             if (watched is not null) query = query.Where(m => m.Watched == watched);
-            var list = await query.OrderBy(m => m.NormalizedTitle).ThenBy(m => m.Year)
+            var list = await query.OrderBy(m => m.NormalizedTitle).ThenBy(m => m.Year).ThenBy(m => m.Id)
+                .Skip(skip).Take(pageSize)
                 .Select(m => new MovieSummary(m.Id, m.MediaItemId, m.Title, m.Year, m.DurationSeconds, m.Container,
                     m.PosterBlob != null, m.Watched, m.WatchProgressSeconds, m.WatchedAtUtc)).ToListAsync(ct);
             return Results.Ok(list);
@@ -32,6 +38,7 @@ public static class MovieEndpoints
             var query = db.Movies.AsNoTracking().Where(m => !m.Watched && m.WatchProgressSeconds > 0);
             if (libraryId is not null) query = query.Where(m => m.LibraryId == libraryId);
             var list = await query.OrderByDescending(m => m.WatchProgressSeconds).ThenBy(m => m.NormalizedTitle)
+                .ThenBy(m => m.Id).Take(ContinuePageSize)
                 .Select(m => new MovieSummary(m.Id, m.MediaItemId, m.Title, m.Year, m.DurationSeconds, m.Container,
                     m.PosterBlob != null, m.Watched, m.WatchProgressSeconds, m.WatchedAtUtc)).ToListAsync(ct);
             return Results.Ok(list);
