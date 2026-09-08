@@ -27,6 +27,7 @@ const musicLibrary = { id: 'lib-1', name: 'Music', createdAtUtc: '2026-01-15T10:
 beforeAll(() => {
   window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
   window.HTMLMediaElement.prototype.pause = vi.fn();
+  window.HTMLMediaElement.prototype.load = vi.fn();
 });
 
 const artist = { id: 'artist-1', name: 'Kavinsky' };
@@ -120,11 +121,13 @@ describe('MusicPage', () => {
     await waitFor(() => {
       expect(apiMocks.fetchMusicAlbums).toHaveBeenCalledWith('lib-1', {
         artistId: 'artist-1',
+        limit: 200,
         signal: expect.anything(),
       });
     });
     expect(apiMocks.fetchMusicTracks).toHaveBeenCalledWith('lib-1', {
       artistId: 'artist-1',
+      limit: 200,
       signal: expect.anything(),
     });
   });

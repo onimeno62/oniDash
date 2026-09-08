@@ -52,13 +52,14 @@ describe('MoviesPage', () => {
     // jsdom does not implement media playback.
     window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
     window.HTMLMediaElement.prototype.pause = vi.fn();
+    window.HTMLMediaElement.prototype.load = vi.fn();
   });
 
   it('shows the empty state when the library has no movies', async () => {
     renderApp('/movies');
 
     expect(await screen.findByRole('heading', { name: 'No movies here yet' })).toBeInTheDocument();
-    expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: undefined });
+    expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: undefined, limit: 100 });
   });
 
   it('renders the movie grid with titles, years, and runtimes', async () => {
@@ -89,7 +90,7 @@ describe('MoviesPage', () => {
     await user.selectOptions(screen.getByLabelText('Watched filter'), 'unwatched');
 
     await waitFor(() => {
-      expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: false });
+      expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: false, limit: 100 });
     });
   });
 
