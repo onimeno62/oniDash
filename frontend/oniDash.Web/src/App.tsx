@@ -4,6 +4,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { MoviesPage } from './pages/MoviesPage';
 import { MusicPage } from './pages/MusicPage';
+import { PlaylistsPage } from './pages/PlaylistsPage';
 import { SearchPage } from './pages/SearchPage';
 import { HealthPage } from './pages/HealthPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -11,20 +12,5 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { PlayerProvider } from './hooks/usePlayer';
 
 export default function App() {
-  return (
-    <PlayerProvider>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="library" element={<LibraryPage />} />
-          <Route path="music" element={<MusicPage />} />
-          <Route path="movies" element={<MoviesPage />} />
-          <Route path="search" element={<SearchPage />} />
-          <Route path="health" element={<HealthPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-      </Routes>
-    </PlayerProvider>
-  );
+  return <PlayerProvider><Routes><Route element={<AppShell />}><Route index element={<DashboardPage />} /><Route path="library" element={<LibraryPage />} /><Route path="music" element={<MusicPage />} /><Route path="music/playlists" element={<PlaylistsPage />} /><Route path="movies" element={<MoviesPage />} /><Route path="search" element={<SearchPage />} /><Route path="health" element={<HealthPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="*" element={<NotFoundPage />} /></Route></Routes></PlayerProvider>;
 }
