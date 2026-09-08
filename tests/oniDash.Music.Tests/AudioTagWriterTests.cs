@@ -15,41 +15,31 @@ public sealed class AudioTagWriterTests
         try
         {
             await Mp3FixtureTests.WriteTaggedMp3Async(path, "Original title", "Original artist", album: "Original album", track: 2, year: 2001);
-            var writer = new TagLibAudioTagWriter();
-            var ok = writer.Write(path, new AudioMetadataUpdate(" Updated title ", null, null, null, null, null, null, " Rock "), out var error);
-
+            var ok = new TagLibAudioTagWriter().Write(path, new AudioMetadataUpdate(" Updated title ", null, null, null, null, null, null, " Rock "), out var error);
             Assert.True(ok, error);
             var tags = new TagLibAudioTagReader().Read(path);
-            Assert.NotNull(tags);
-            Assert.Equal("Updated title", tags!.Title);
-            Assert.Equal("Original artist", tags.TrackArtist);
-            Assert.Equal("Original album", tags.Album);
-            Assert.Equal(2, tags.TrackNumber);
-            Assert.Equal(2001, tags.Year);
-            Assert.Equal("Rock", tags.Genre);
+            Assert.NotNull(tags); Assert.Equal("Updated title", tags!.Title); Assert.Equal("Original artist", tags.TrackArtist); Assert.Equal("Original album", tags.Album); Assert.Equal(2, tags.TrackNumber); Assert.Equal(2001, tags.Year); Assert.Equal("Rock", tags.Genre);
         }
         finally { File.Delete(path); }
     }
 
     [Fact]
-    public void Returns_a_recoverable_error_for_garbage()
+    public async Task Failed_write_does_not_replace_original_file()
     {
         var path = Path.Combine(Path.GetTempPath(), $"onidash-writer-{Guid.NewGuid():N}.mp3");
         try
         {
-            File.WriteAllText(path, "not audio");
+            await File.WriteAllTextAsync(path, "not audio"); var before = await File.ReadAllBytesAsync(path);
             var ok = new TagLibAudioTagWriter().Write(path, new AudioMetadataUpdate("Title", null, null, null, null, null, null, null), out var error);
-            Assert.False(ok);
-            Assert.False(string.IsNullOrWhiteSpace(error));
+            Assert.False(ok); Assert.False(string.IsNullOrWhiteSpace(error)); Assert.Equal(before, await File.ReadAllBytesAsync(path));
         }
         finally { File.Delete(path); }
     }
 
     [Fact]
-    public void Returns_a_recoverable_error_for_missing_file()
+    public void Missing_file_returns_a_recoverable_error()
     {
         var ok = new TagLibAudioTagWriter().Write(Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.mp3"), new AudioMetadataUpdate("Title", null, null, null, null, null, null, null), out var error);
-        Assert.False(ok);
-        Assert.False(string.IsNullOrWhiteSpace(error));
+        Assert.False(ok); Assert.False(string.IsNullOrWhiteSpace(error));
     }
 }
