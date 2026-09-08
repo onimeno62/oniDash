@@ -12,7 +12,11 @@ public sealed class TagLibAudioTagWriter : IAudioTagWriter
     public bool Write(string absolutePath, AudioMetadataUpdate update, out string? error)
     {
         error = null;
-        var tempPath = $"{absolutePath}.{Guid.NewGuid():N}.onidash.tmp";
+        // Stage beside the source, but keep the real extension as the LAST suffix:
+        // TagLib.File.Create resolves the file format by extension and cannot identify
+        // an unknown ".tmp" suffix.
+        var extension = Path.GetExtension(absolutePath);
+        var tempPath = $"{absolutePath}.{Guid.NewGuid():N}.onidash.tmp{extension}";
         try
         {
             File.Copy(absolutePath, tempPath, overwrite: false);
