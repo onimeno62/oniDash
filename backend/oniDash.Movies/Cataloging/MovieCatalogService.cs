@@ -10,19 +10,12 @@ using oniDash.Movies.Probing;
 
 namespace oniDash.Movies.Cataloging;
 
-/// <summary>
-/// Builds and maintains the movie catalogue from indexed video files. Movies anchor
-/// 1:1 to the scan's media items, so re-scans and re-indexing converge on the same
-/// rows (user tags/collections on the items are never disturbed). Per-file failures
-/// are logged and skipped — a bad file never blocks the rest.
-/// </summary>
 public sealed class MovieCatalogService(
     MoviesDbContext dbContext,
     IVideoProbeReader probeReader,
     IVideoArtworkReader artworkReader,
     ILogger<MovieCatalogService> logger)
 {
-    /// <summary>Extensions the catalogue understands; everything else is ignored.</summary>
     public static readonly string[] VideoExtensions =
     [
         ".mp4", ".m4v", ".mkv", ".avi", ".mov", ".wmv", ".webm", ".mpg", ".mpeg", ".ts", ".flv",
@@ -34,27 +27,17 @@ public sealed class MovieCatalogService(
         return VideoExtensions.Contains(normalized, StringComparer.OrdinalIgnoreCase);
     }
 
-    public async Task<bool> IndexFileAsync(
-        Guid libraryId,
-        Guid mediaItemId,
-        Guid fileId,
-        string absolutePath,
-        CancellationToken cancellationToken = default)
+    public async Task<bool> IndexFileAsync(Guid libraryId, Guid mediaItemId, Guid fileId, string absolutePath, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (!VideoExtensionsMatch(Path.GetExtension(absolutePath)))
-            {
-                return false;
-            }
+            if (!VideoExtensionsMatch(Path.GetExtension(absolutePath))) return false;
 
             var probe = await probeReader.ProbeAsync(absolutePath, cancellationToken).ConfigureAwait(false);
             var artwork = await artworkReader.ReadAsync(absolutePath, cancellationToken).ConfigureAwait(false);
             var nameInfo = MovieNameParser.Parse(absolutePath);
 
-            var movie = await dbContext.Movies
-                .SingleOrDefaultAsync(m => m.MediaItemId == mediaItemId, cancellationToken)
-                .ConfigureAwait(false);
+            var movie = await dbContext.Movies.SingleOrDefaultAsync(m => m.MediaItemId == mediaItemId, cancellationToken).ConfigureAwait(false);
             if (movie is null)
             {
                 movie = new Movie { Id = Guid.NewGuid(), MediaItemId = mediaItemId };
@@ -75,14 +58,10 @@ public sealed class MovieCatalogService(
             }
 
             movie.UpdatedAtUtc = DateTimeOffset.UtcNow;
-
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to index video file {Path}; skipping", absolutePath);
@@ -90,42 +69,40 @@ public sealed class MovieCatalogService(
         }
     }
 
-    /// <summary>Saves the resume position for a movie; position is never negative.</summary>
     public async Task<bool> SaveProgressAsync(Guid movieId, double positionSeconds, CancellationToken cancellationToken = default)
     {
         var movie = await dbContext.Movies.FindAsync([movieId], cancellationToken).ConfigureAwait(false);
-        if (movie is null)
+        if (movie is null) return false;
+
+        var position = Math.Max(0, positionSeconds);
+        if (movie.DurationSeconds is { } duration && position >= duration * 0.95)
         {
-            return false;
+            movie.Watched = true;
+            movie.WatchedAtUtc = DateTimeOffset.UtcNow;
+            movie.WatchProgressSeconds = null;
+        }
+        else
+        {
+            movie.WatchProgressSeconds = position;
         }
 
-        movie.WatchProgressSeconds = Math.Max(0, positionSeconds);
+        movie.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
-    /// <summary>
-    /// Marks a movie watched (recording when) or unwatched. Either way the resume
-    /// position resets: a finished movie offers no resume, and re-watching starts
-    /// fresh.
-    /// </summary>
     public async Task<bool> SetWatchedAsync(Guid movieId, bool watched, CancellationToken cancellationToken = default)
     {
         var movie = await dbContext.Movies.FindAsync([movieId], cancellationToken).ConfigureAwait(false);
-        if (movie is null)
-        {
-            return false;
-        }
+        if (movie is null) return false;
 
         movie.Watched = watched;
         movie.WatchedAtUtc = watched ? DateTimeOffset.UtcNow : null;
         movie.WatchProgressSeconds = null;
-
+        movie.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
-    /// <summary>Case/whitespace-insensitive ordering key.</summary>
-    internal static string Normalize(string? value) =>
-        (value ?? string.Empty).Trim().ToLowerInvariant();
+    internal static string Normalize(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
 }

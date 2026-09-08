@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using oniDash.Application.Common;
 using oniDash.Application.Libraries;
 using oniDash.Core.Domain;
 
 namespace oniDash.Music.Cataloging;
+
+public sealed record AudioFileLocation(string AbsolutePath, string ContentType);
 
 /// <summary>
 /// Resolves a media file row to its absolute path (source root + scanner-relative path,
@@ -40,15 +43,7 @@ public sealed class AudioFileLocator(
         var source = await sourceRepository
             .GetByIdAsync(file.LibrarySourceId, cancellationToken)
             .ConfigureAwait(false);
-        if (source is null)
-        {
-            return null;
-        }
-
-        var root = Path.GetFullPath(source.RootPath);
-        var absolutePath = Path.GetFullPath(Path.Combine(
-            root, file.RelativePath.Replace('/', Path.DirectorySeparatorChar)));
-        if (!absolutePath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        if (source is null || !PathSafety.TryResolveChildPath(source.RootPath, file.RelativePath, out var absolutePath))
         {
             return null;
         }
