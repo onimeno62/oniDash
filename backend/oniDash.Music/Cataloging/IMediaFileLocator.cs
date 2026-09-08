@@ -4,8 +4,8 @@ using System.Threading.Tasks;
 
 namespace oniDash.Music.Cataloging;
 
-/// <summary>Where an indexed file's bytes live and how to describe them to a player.</summary>
-public sealed record AudioFileLocation(string AbsolutePath, string ContentType);
+// AudioFileLocation lives in AudioFileLocator.cs; this file only adds the locator
+// abstraction so the player/endpoints can depend on it instead of the concrete class.
 
 /// <summary>
 /// Resolves an indexed file row to a streamable location. Implemented inside the music
