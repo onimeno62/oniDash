@@ -6,6 +6,7 @@ Treat user filesystem access as sensitive.
 - Never rename/move files automatically in v1.
 - Restrict filesystem operations to configured sources.
 - Validate paths and prevent traversal for future modifying operations.
+- Media playback resolvers must reject rooted paths, parent traversal, sibling-prefix escapes, and existing reparse points below a configured source root.
 - Never execute arbitrary files.
 - Treat embedded metadata as untrusted input.
 - Sanitize metadata before rendering.
