@@ -6,8 +6,10 @@ obj/
 testresults/
 TestResults/
 
-# Local package bootstrap feed (regenerable via node artifacts/fetch-nuget.js)
-artifacts/nuget-feed/
+# Local package bootstrap feed (regenerable via node artifacts/fetch-nuget.js);
+# the .gitkeep placeholder IS tracked so fresh clones keep the folder for nuget.config.
+artifacts/nuget-feed/*
+!artifacts/nuget-feed/.gitkeep
 artifacts/nuget-packages/
 # Scratch files
 artifacts/*.txt

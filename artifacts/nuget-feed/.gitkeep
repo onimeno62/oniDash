@@ -1,0 +1,3 @@
+# This placeholder keeps artifacts/nuget-feed/ present in fresh clones so nuget.config's
+# local source exists (a missing declared source fails restore with NU1301). The actual
+# .nupkg files are bootstrapped via `node artifacts/fetch-nuget.js` and never committed.
