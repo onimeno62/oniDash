@@ -1,48 +1,20 @@
 import { apiFetch } from './client';
-
 export interface ArtistSummary { id: string; name: string; }
 export interface AlbumSummary { id: string; title: string; artistName: string | null; year: number | null; hasCover: boolean; }
-export interface TrackSummary {
-  id: string; mediaItemId: string; title: string; artistName: string | null; albumTitle: string;
-  albumId: string | null; hasCover: boolean; trackNumber: number | null; discNumber: number | null;
-  year: number | null; durationSeconds: number | null; genre: string | null;
-}
-
+export interface TrackSummary { id: string; mediaItemId: string; title: string; artistName: string | null; albumTitle: string; albumId: string | null; hasCover: boolean; trackNumber: number | null; discNumber: number | null; year: number | null; durationSeconds: number | null; genre: string | null; }
 type PageOptions = { limit?: number; offset?: number; signal?: AbortSignal };
-
-function pageParams(libraryId: string, options: PageOptions): URLSearchParams {
-  const params = new URLSearchParams({ libraryId });
-  if (options.limit !== undefined) params.set('limit', String(options.limit));
-  if (options.offset !== undefined) params.set('offset', String(options.offset));
-  return params;
-}
-
-export function fetchMusicArtists(libraryId: string, options: PageOptions = {}): Promise<ArtistSummary[]> {
-  return apiFetch<ArtistSummary[]>(`/music/artists?${pageParams(libraryId, options)}`, { signal: options.signal });
-}
-
-export function fetchMusicAlbums(libraryId: string, options: PageOptions & { artistId?: string } = {}): Promise<AlbumSummary[]> {
-  const params = pageParams(libraryId, options);
-  if (options.artistId) params.set('artistId', options.artistId);
-  return apiFetch<AlbumSummary[]>(`/music/albums?${params}`, { signal: options.signal });
-}
-
-export function fetchMusicTracks(libraryId: string, options: PageOptions & { albumId?: string; artistId?: string } = {}): Promise<TrackSummary[]> {
-  const params = pageParams(libraryId, options);
-  if (options.albumId) params.set('albumId', options.albumId);
-  if (options.artistId) params.set('artistId', options.artistId);
-  return apiFetch<TrackSummary[]>(`/music/tracks?${params}`, { signal: options.signal });
-}
-
+function pageParams(libraryId: string, options: PageOptions): URLSearchParams { const params = new URLSearchParams({ libraryId }); if (options.limit !== undefined) params.set('limit', String(options.limit)); if (options.offset !== undefined) params.set('offset', String(options.offset)); return params; }
+export function fetchMusicArtists(libraryId: string, options: PageOptions = {}): Promise<ArtistSummary[]> { return apiFetch<ArtistSummary[]>(`/music/artists?${pageParams(libraryId, options)}`, { signal: options.signal }); }
+export function fetchMusicAlbums(libraryId: string, options: PageOptions & { artistId?: string } = {}): Promise<AlbumSummary[]> { const p = pageParams(libraryId, options); if (options.artistId) p.set('artistId', options.artistId); return apiFetch<AlbumSummary[]>(`/music/albums?${p}`, { signal: options.signal }); }
+export function fetchMusicTracks(libraryId: string, options: PageOptions & { albumId?: string; artistId?: string } = {}): Promise<TrackSummary[]> { const p = pageParams(libraryId, options); if (options.albumId) p.set('albumId', options.albumId); if (options.artistId) p.set('artistId', options.artistId); return apiFetch<TrackSummary[]>(`/music/tracks?${p}`, { signal: options.signal }); }
+export interface MusicFavorite { id: string; entityType: string; entityId: string; createdAtUtc: string; }
+export interface MusicPlayHistory { id: string; trackId: string; startedAtUtc: string; completedAtUtc: string | null; playedSeconds: number; completionRatio: number; source: string; }
+export function fetchMusicFavorites(signal?: AbortSignal): Promise<MusicFavorite[]> { return apiFetch<MusicFavorite[]>('/music/favorites', { signal }); }
+export function addMusicFavorite(entityType: 'track' | 'album' | 'artist', entityId: string): Promise<void> { return apiFetch<void>('/music/favorites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entityType, entityId }) }); }
+export function removeMusicFavorite(entityType: string, entityId: string): Promise<void> { return apiFetch<void>(`/music/favorites/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`, { method: 'DELETE' }); }
+export function fetchMusicHistory(options: PageOptions = {}): Promise<MusicPlayHistory[]> { const p = new URLSearchParams(); if (options.limit !== undefined) p.set('limit', String(options.limit)); if (options.offset !== undefined) p.set('offset', String(options.offset)); return apiFetch<MusicPlayHistory[]>(`/music/history?${p}`, { signal: options.signal }); }
+export function recordMusicPlay(trackId: string, playedSeconds: number, completionRatio: number, source = 'local'): Promise<void> { return apiFetch<void>(`/music/tracks/${encodeURIComponent(trackId)}/play`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playedSeconds, completionRatio, source }) }); }
 export function albumCoverUrl(albumId: string): string { return `/api/music/albums/${albumId}/cover`; }
 export function trackStreamUrl(trackId: string): string { return `/api/music/tracks/${trackId}/stream`; }
-
-export function reindexMusic(libraryId?: string): Promise<{ indexedTracks: number }> {
-  return apiFetch<{ indexedTracks: number }>(libraryId ? `/music/reindex?libraryId=${encodeURIComponent(libraryId)}` : '/music/reindex', { method: 'POST' });
-}
-
-export function formatDuration(seconds: number | null): string {
-  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return '–:––';
-  const total = Math.round(seconds);
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
-}
+export function reindexMusic(libraryId?: string): Promise<{ indexedTracks: number }> { return apiFetch<{ indexedTracks: number }>(libraryId ? `/music/reindex?libraryId=${encodeURIComponent(libraryId)}` : '/music/reindex', { method: 'POST' }); }
+export function formatDuration(seconds: number | null): string { if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return '–:––'; const total = Math.round(seconds); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; }
