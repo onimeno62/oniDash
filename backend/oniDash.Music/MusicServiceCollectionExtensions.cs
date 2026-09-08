@@ -19,7 +19,7 @@ public static class MusicServiceCollectionExtensions
     {
         var connectionString = ResolveConnectionString(configuration);
         services.AddDbContext<MusicDbContext>(options => options.UseSqlite(connectionString));
-        services.AddScoped<MusicCatalogService>(); services.AddScoped<IAudioTagReader, TagLibAudioTagReader>(); services.AddScoped<MusicReindexService>(); services.AddScoped<MusicDatabaseInitializer>(); services.AddScoped<IMediaFileLocator, AudioFileLocator>(); services.AddScoped<IIndexedMediaHandler, MusicIndexedMediaHandler>();
+        services.AddScoped<MusicCatalogService>(); services.AddScoped<IAudioTagReader, TagLibAudioTagReader>(); services.AddScoped<IAudioTagWriter, TagLibAudioTagWriter>(); services.AddScoped<MusicReindexService>(); services.AddScoped<MusicDatabaseInitializer>(); services.AddScoped<IMediaFileLocator, AudioFileLocator>(); services.AddScoped<IIndexedMediaHandler, MusicIndexedMediaHandler>();
         return services;
     }
     public static IEndpointRouteBuilder MapMusicEndpoints(this IEndpointRouteBuilder app) => MusicEndpoints.MapMusicEndpoints(app).MapMusicEngagementEndpoints().MapMusicPlaylistEndpoints();
