@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>oniDash.Infrastructure</RootNamespace>
+    <AssemblyName>oniDash.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <!-- Overrides the vulnerable 2.1.11 pulled in transitively (GHSA-2m69-gcr7-jv3q). -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\oniDash.Application\oniDash.Application.csproj" />
+  </ItemGroup>
+
+</Project>

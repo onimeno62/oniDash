@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Root namespace for the whole product; keeps project folder names valid C# identifiers. -->
+    <RootNamespace>oniDash.Core</RootNamespace>
+    <AssemblyName>oniDash.Core</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Core is the innermost layer: no dependencies except the BCL. -->
+
+</Project>
