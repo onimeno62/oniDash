@@ -8,6 +8,8 @@ export interface MusicPlayHistory { id: string; trackId: string; startedAtUtc: s
 export interface PlaylistSummary { id: string; name: string; description: string | null; isSmart: boolean; updatedAtUtc: string; }
 export interface PlaylistDetail extends PlaylistSummary { smartQuery: string | null; tracks: TrackSummary[]; }
 export interface SmartRule { genre?: string; artistContains?: string; minYear?: number; maxYear?: number; sort?: 'title' | 'duration' | 'year'; limit?: number; }
+export interface MusicOverview { tracks: number; albums: number; artists: number; playlists: number; favorites: number; listeningSeconds: number; }
+export interface MusicHealth { database: boolean; tracks: number; lastUpdatedUtc: string | null; }
 type PageOptions = { limit?: number; offset?: number; signal?: AbortSignal };
 function pageParams(libraryId: string, options: PageOptions): URLSearchParams { const params = new URLSearchParams({ libraryId }); if (options.limit !== undefined) params.set('limit', String(options.limit)); if (options.offset !== undefined) params.set('offset', String(options.offset)); return params; }
 export function fetchMusicArtists(libraryId: string, options: PageOptions = {}): Promise<ArtistSummary[]> { return apiFetch<ArtistSummary[]>(`/music/artists?${pageParams(libraryId, options)}`, { signal: options.signal }); }
@@ -25,6 +27,10 @@ export function deleteMusicPlaylist(id: string): Promise<void> { return apiFetch
 export function addTrackToMusicPlaylist(playlistId: string, trackId: string, position?: number): Promise<void> { return apiFetch<void>(`/music/playlists/${encodeURIComponent(playlistId)}/items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId, position }) }); }
 export function fetchMusicMetadata(trackId: string, signal?: AbortSignal): Promise<MusicMetadata> { return apiFetch<MusicMetadata>(`/music/tracks/${encodeURIComponent(trackId)}/metadata`, { signal }); }
 export function updateMusicMetadata(trackId: string, update: Partial<Omit<MusicMetadata, 'durationSeconds'>> & { confirmed: true }): Promise<void> { return apiFetch<void>(`/music/tracks/${encodeURIComponent(trackId)}/metadata`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(update) }); }
+export function fetchMusicOverview(signal?: AbortSignal): Promise<MusicOverview> { return apiFetch<MusicOverview>('/music/statistics/overview', { signal }); }
+export function fetchMusicHealth(signal?: AbortSignal): Promise<MusicHealth> { return apiFetch<MusicHealth>('/music/health', { signal }); }
+export function fetchMusicTopTracks(limit = 20, signal?: AbortSignal) { return apiFetch<Array<{ trackId: string; plays: number; playedSeconds: number }>>(`/music/statistics/top-tracks?limit=${limit}`, { signal }); }
+export function fetchMusicGenres(signal?: AbortSignal) { return apiFetch<Array<{ genre: string; tracks: number }>>('/music/statistics/genres', { signal }); }
 export function albumCoverUrl(albumId: string): string { return `/api/music/albums/${albumId}/cover`; }
 export function trackStreamUrl(trackId: string): string { return `/api/music/tracks/${trackId}/stream`; }
 export function reindexMusic(libraryId?: string): Promise<{ indexedTracks: number }> { return apiFetch<{ indexedTracks: number }>(libraryId ? `/music/reindex?libraryId=${encodeURIComponent(libraryId)}` : '/music/reindex', { method: 'POST' }); }
