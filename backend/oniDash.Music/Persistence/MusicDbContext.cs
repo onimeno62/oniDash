@@ -13,6 +13,8 @@ public sealed class MusicDbContext(DbContextOptions<MusicDbContext> options) : D
     public DbSet<MusicTrack> Tracks => Set<MusicTrack>();
     public DbSet<MusicFavorite> Favorites => Set<MusicFavorite>();
     public DbSet<MusicPlayHistory> PlayHistory => Set<MusicPlayHistory>();
+    public DbSet<MusicPlaylist> Playlists => Set<MusicPlaylist>();
+    public DbSet<MusicPlaylistItem> PlaylistItems => Set<MusicPlaylistItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +24,8 @@ public sealed class MusicDbContext(DbContextOptions<MusicDbContext> options) : D
         modelBuilder.Entity<MusicTrack>(entity => { entity.ToTable("Tracks"); entity.Property(t => t.Title).HasMaxLength(512).IsRequired(); entity.Property(t => t.ArtistName).HasMaxLength(512); entity.Property(t => t.Genre).HasMaxLength(256); entity.HasIndex(t => t.MediaItemId).IsUnique(); entity.HasIndex(t => new { t.AlbumId, t.DiscNumber, t.TrackNumber, t.Title }); entity.HasOne<MediaItemAnchor>().WithMany().HasForeignKey(t => t.MediaItemId).OnDelete(DeleteBehavior.Cascade); entity.HasOne(t => t.Album).WithMany().HasForeignKey(t => t.AlbumId).OnDelete(DeleteBehavior.SetNull); entity.HasOne(t => t.Artist).WithMany().HasForeignKey(t => t.ArtistId).OnDelete(DeleteBehavior.SetNull); });
         modelBuilder.Entity<MusicFavorite>(entity => { entity.ToTable("MusicFavorites"); entity.Property(f => f.EntityType).HasMaxLength(32).IsRequired(); entity.HasIndex(f => new { f.EntityType, f.EntityId }).IsUnique(); });
         modelBuilder.Entity<MusicPlayHistory>(entity => { entity.ToTable("MusicPlayHistory"); entity.Property(h => h.Source).HasMaxLength(64).IsRequired(); entity.HasIndex(h => new { h.TrackId, h.StartedAtUtc }); });
+        modelBuilder.Entity<MusicPlaylist>(entity => { entity.ToTable("MusicPlaylists"); entity.Property(p => p.Name).HasMaxLength(256).IsRequired(); entity.Property(p => p.Description).HasMaxLength(2000); entity.Property(p => p.SmartQuery).HasMaxLength(4000); entity.HasIndex(p => p.Name).IsUnique(); });
+        modelBuilder.Entity<MusicPlaylistItem>(entity => { entity.ToTable("MusicPlaylistItems"); entity.HasIndex(i => new { i.PlaylistId, i.Position }).IsUnique(); entity.HasIndex(i => new { i.PlaylistId, i.TrackId }).IsUnique(); entity.HasOne(i => i.Playlist).WithMany().HasForeignKey(i => i.PlaylistId).OnDelete(DeleteBehavior.Cascade); entity.HasOne(i => i.Track).WithMany().HasForeignKey(i => i.TrackId).OnDelete(DeleteBehavior.Cascade); });
         base.OnModelCreating(modelBuilder);
     }
 }
