@@ -25,7 +25,7 @@ public static class MusicMetadataEndpoints
             var tags = reader.Read(location.AbsolutePath);
             return tags is null ? Results.Problem("The audio file could not be read.", statusCode: 422) : Results.Ok(new MetadataResponse(tags.Title, tags.TrackArtist, tags.AlbumArtist, tags.Album, tags.TrackNumber, tags.DiscNumber, tags.Year, tags.DurationSeconds, tags.Genre));
         });
-        music.MapPut("/tracks/{trackId:guid}/metadata", async (MusicDbContext db, IAudioTagWriter writer, IMediaFileLocator locator, Guid trackId, MetadataRequest request, CancellationToken ct) =>
+        music.MapPut("/tracks/{trackId:guid}/metadata", async (MusicDbContext db, MusicCatalogService catalog, IAudioTagWriter writer, IMediaFileLocator locator, Guid trackId, MetadataRequest request, CancellationToken ct) =>
         {
             if (!request.Confirmed) return Results.Conflict(new { error = "Metadata writes require explicit confirmation." });
             var track = await db.Tracks.SingleOrDefaultAsync(t => t.Id == trackId, ct);
@@ -34,6 +34,7 @@ public static class MusicMetadataEndpoints
             if (location is null) return Results.NotFound();
             var update = new AudioMetadataUpdate(request.Title, request.TrackArtist, request.AlbumArtist, request.Album, request.TrackNumber, request.DiscNumber, request.Year, request.Genre);
             if (!writer.Write(location.AbsolutePath, update, out var error)) return Results.Problem(error ?? "Metadata write failed.", statusCode: 422);
+            if (!await catalog.IndexFileAsync(track.LibraryId, track.MediaItemId, track.FileId, location.AbsolutePath, ct)) return Results.Problem("Metadata was written, but the catalogue refresh failed.", statusCode: 503);
             return Results.Accepted();
         });
         return app;
