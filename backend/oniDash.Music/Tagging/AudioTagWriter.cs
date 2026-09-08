@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 
 namespace oniDash.Music.Tagging;
 
@@ -18,7 +17,7 @@ public interface IAudioTagWriter
     bool Write(string absolutePath, AudioMetadataUpdate update, out string? error);
 }
 
-/// <summary>Writes only explicitly supplied fields, then saves TagLib atomically as supported by the container.</summary>
+/// <summary>Writes only explicitly supplied fields through TagLib#.</summary>
 public sealed class TagLibAudioTagWriter : IAudioTagWriter
 {
     public bool Write(string absolutePath, AudioMetadataUpdate update, out string? error)
