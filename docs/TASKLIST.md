@@ -7,7 +7,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Define canonical `MediaType`, `MediaItem`, `MediaFile`, `Library`, `Source`, `Artwork`, `Tag`, `Collection` contracts.
 - [x] Define canonical API error envelope and pagination conventions.
 - [x] Define common background `Job` model and status API.
-- [ ] Add integration-test harness for API + temporary SQLite + temporary media folders.
+- [x] Add integration-test harness for API + temporary SQLite + temporary media folders.
 - [x] Fix any API routes that can fall through to SPA HTML.
 
 ## M1 — Unified scanner/indexer
