@@ -95,12 +95,11 @@ describe('MusicPage', () => {
     const user = userEvent.setup();
     renderApp('/music');
 
-    await screen.findByRole('button', { name: 'Play Nightcall' });
-    await user.click(screen.getByRole('button', { name: 'Play Nightcall' }));
+    await screen.findByRole('button', { name: /Play Nightcall/ });
+    await user.click(screen.getByRole('button', { name: /Play Nightcall/ }));
 
     const bar = await screen.findByTestId('player-bar');
-    // The track name appears in the bar header and again in the queue popover.
-    expect(within(bar).getAllByText('Nightcall').length).toBeGreaterThan(0);
+    expect(within(bar).getByText('Nightcall')).toBeInTheDocument();
     expect(within(bar).getByRole('button', { name: 'Pause' })).toBeInTheDocument();
 
     await user.click(within(bar).getByRole('button', { name: 'Stop' }));

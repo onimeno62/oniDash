@@ -2,6 +2,7 @@
   <PropertyGroup>
     <RootNamespace>oniDash.Api</RootNamespace>
     <AssemblyName>oniDash.Api</AssemblyName>
+    <!-- Reported by /api/health. -->
     <Version>0.6.0</Version>
   </PropertyGroup>
   <ItemGroup>
@@ -15,6 +16,5 @@
     <ProjectReference Include="..\oniDash.Infrastructure\oniDash.Infrastructure.csproj" />
     <ProjectReference Include="..\oniDash.Music\oniDash.Music.csproj" />
     <ProjectReference Include="..\oniDash.Movies\oniDash.Movies.csproj" />
-    <ProjectReference Include="..\oniDash.Manga\oniDash.Manga.csproj" />
   </ItemGroup>
 </Project>

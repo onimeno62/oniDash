@@ -255,11 +255,6 @@ namespace oniDash.Music.Persistence.Migrations
                     b.Property<Guid>("MediaItemId")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Rating")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(512)
