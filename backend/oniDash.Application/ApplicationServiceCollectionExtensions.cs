@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using oniDash.Application.Jobs;
 using oniDash.Application.Libraries;
 using oniDash.Application.Scanning;
 
@@ -14,6 +15,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IMediaItemService, MediaItemService>();
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<ICollectionService, CollectionService>();
+        services.AddScoped<IJobService, JobService>();
 
         services.AddScoped<IMediaItemResolver, PlaceholderMediaItemResolver>();
         services.AddScoped<IScanService, ScanService>();
