@@ -27,6 +27,7 @@ public static class MangaEndpoints
         manga.MapPut("/{id:guid}/status", async (OniDashDbContext db, Guid id, StatusRequest request, CancellationToken ct) => await Mutate(db, id, status: request.Status, ct: ct));
         manga.MapPut("/{id:guid}/progress", async (OniDashDbContext db, Guid id, ProgressRequest request, CancellationToken ct) => await Mutate(db, id, progress: request.Chapter, lastReadAtUtc: DateTimeOffset.UtcNow, ct: ct));
         manga.MapPost("/{id:guid}/download", async (OniDashDbContext db, Guid id, DownloadRequest request, CancellationToken ct) => await Mutate(db, id, downloadCountDelta: request.Chapters.Count, ct: ct));
+        manga.MapGet("/{id:guid}/cover", async (OniDashDbContext db, Guid id, CancellationToken ct) => { var artwork = await db.Artwork.AsNoTracking().FirstOrDefaultAsync(x => x.MediaItemId == id && (x.Kind == ArtworkKind.Poster || x.Kind == ArtworkKind.Thumbnail), ct); if (artwork is null) return Results.NotFound(); if (Uri.TryCreate(artwork.SourcePath, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https") return Results.Redirect(artwork.SourcePath); return FileResultIfExists(artwork.SourcePath); });
         manga.MapPost("/update", () => Results.Ok(new { accepted = true }));
         manga.MapPost("/sources/install", (InstallSourceRequest request) => Results.Ok(new { installed = true, sourceId = request.SourceId }));
         return app;
@@ -41,8 +42,8 @@ public static class MangaEndpoints
 
     private static MangaDto ToDto(MediaItem item, MangaState? state)
     {
-        var chapters = item.Files.Count; var progress = state?.ProgressPercent ?? 0; var read = chapters == 0 ? 0 : (int)Math.Round(chapters * progress / 100); var cover = item.Artwork.FirstOrDefault()?.SourcePath;
-        return new MangaDto(item.Id.ToString(), item.DisplayName, null, null, null, cover, null, item.Tags.Select(x => x.Tag.Name).ToArray(), state?.Status ?? "plan_to_read", chapters, Math.Max(0, chapters - read), read, state?.LastReadAtUtc, null, state?.Favorite ?? false, true, state?.DownloadCount ?? 0, progress, null, DateTimeOffset.UtcNow);
+        var chapters = item.Files.Count; var progress = state?.ProgressPercent ?? 0; var read = chapters == 0 ? 0 : (int)Math.Round(chapters * progress / 100);
+        return new MangaDto(item.Id.ToString(), item.DisplayName, null, null, null, $"/api/manga/{item.Id}/cover", null, item.Tags.Select(x => x.Tag.Name).ToArray(), state?.Status ?? "plan_to_read", chapters, Math.Max(0, chapters - read), read, state?.LastReadAtUtc, null, null, state?.Favorite ?? false, true, state?.DownloadCount ?? 0, progress, null, DateTimeOffset.UtcNow);
     }
 
     private static async Task<IResult> Mutate(OniDashDbContext db, Guid id, bool? favorite = null, string? status = null, string? progress = null, DateTimeOffset? lastReadAtUtc = null, int downloadCountDelta = 0, CancellationToken ct = default)
@@ -65,9 +66,10 @@ public static class MangaEndpoints
 
     private static Task EnsureStateTable(OniDashDbContext db, CancellationToken ct) => db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS manga_catalog_state (id TEXT PRIMARY KEY, favorite INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'plan_to_read', progress_percent REAL NOT NULL DEFAULT 0, last_read_at_utc TEXT NULL, download_count INTEGER NOT NULL DEFAULT 0)", ct);
     private static async Task EnsureOpen(DbConnection connection, CancellationToken ct) { if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync(ct); }
-
+    private static IResult FileResultIfExists(string path) => File.Exists(path) ? Results.File(path, GetImageContentType(path)) : Results.NotFound();
+    private static string GetImageContentType(string path) => Path.GetExtension(path).ToLowerInvariant() switch { ".jpg" or ".jpeg" => "image/jpeg", ".png" => "image/png", ".webp" => "image/webp", ".gif" => "image/gif", _ => "application/octet-stream" };
     public sealed record FavoriteRequest(bool Favorite); public sealed record StatusRequest(string Status); public sealed record ProgressRequest(string Chapter); public sealed record DownloadRequest(List<string> Chapters); public sealed record InstallSourceRequest(string SourceId);
     public sealed record MangaCategoryDto(string Id, string Name, int Count, string? Color); public sealed record MangaSourceDto(string Id, string Name, string? Language, bool Installed, bool Enabled, int MangaCount, string? IconUrl); public sealed record MangaUpdateDto(string Id, string MangaId, string MangaTitle, string? CoverUrl, string Chapter, DateTimeOffset UpdatedAtUtc, string? SourceName, bool Downloaded, bool Read);
-    public sealed record MangaDto(string Id, string Title, string? AltTitle, string? Author, string? Artist, string? Description, string? CoverUrl, string[] Genres, string Status, int ChapterCount, int UnreadCount, int ReadCount, DateTimeOffset? LastReadAtUtc, string? LatestChapter, double? Rating, bool Favorite, bool InLibrary, int DownloadCount, double ProgressPercent, int? Year, DateTimeOffset UpdatedAtUtc);
+    public sealed record MangaDto(string Id, string Title, string? AltTitle, string? Author, string? Artist, string? Description, string? CoverUrl, string? SourceId, string[] Genres, string Status, int ChapterCount, int UnreadCount, int ReadCount, DateTimeOffset? LastReadAtUtc, string? LatestChapter, double? Rating, bool Favorite, bool InLibrary, int DownloadCount, double ProgressPercent, int? Year, DateTimeOffset UpdatedAtUtc);
     private sealed record MangaState(bool Favorite, string Status, double ProgressPercent, DateTimeOffset? LastReadAtUtc, int DownloadCount);
 }
