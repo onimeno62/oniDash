@@ -1,45 +1,65 @@
 # oniDash Manga
 
-The Manga plugin is designed as a desktop-first manga discovery, library, download, update and reading experience. Its UX takes inspiration from Kotatsu while using a provider boundary that can consume Mihon-compatible extensions through a compatible runtime such as Suwayomi.
+The Manga plugin is a desktop-first manga discovery, library, download, update and reading experience. The UX takes inspiration from Kotatsu while the runtime boundary is Suwayomi, which executes Mihon/Tachiyomi-compatible extensions.
 
-## Reference projects
+## Architecture
 
-- Kotatsu: https://github.com/KotatsuApp/Kotatsu
-- Suwayomi: https://github.com/Suwayomi/Suwayomi
-- Mangayomi: https://github.com/kodjodevf/mangayomi
-- Yomihon: https://github.com/yomihon/yomihon
+`oniDash.Web -> /api/manga/* -> oniDash.Manga -> Suwayomi GraphQL -> Mihon-compatible extensions -> source`
 
-Kotatsu is used as UX inspiration rather than copied UI/code. Its repository is archived, so oniDash should avoid coupling itself to Kotatsu internals.
+oniDash does **not** scrape individual manga sites itself. Source/runtime concerns stay behind Suwayomi and extension APIs.
 
-## Feature scope
+The backend integration currently covers:
 
-- Home dashboard with continue reading, latest chapter updates and popular/discovery rows
-- Library with search, filters, favorites, unread counts and reading status
-- User-defined categories
-- Mihon-compatible extension/source management
-- Source browsing/search and source metadata
-- Install/enable/disable extension lifecycle through the backend
-- Library update checks and update feed
-- Per-title unread/read chapter state
-- Reading progress and continue-reading queue
-- Chapter download/offline queue
-- Bulk download and automatic download of new chapters
-- Manga detail drawer with metadata, genres, author/artist, source and progress
-- Favorites and reading status: reading, completed, on hold, plan to read, dropped
-- Ratings/bookmarks/history and incognito mode at the reader/backend layer
-- Configurable manga/webtoon reader with RTL/LTR, long-strip and paged modes
-- Page prefetch/cache, resume position and offline reading
-- Tracking integrations (AniList, MyAnimeList, Kitsu, MangaUpdates) behind adapters
-- Backup/restore compatible with the selected backend format
-- Desktop notifications for new chapters and download failures
-- OPDS export where supported
+- Suwayomi connectivity/health
+- library and continue-reading data
+- update feed and library update trigger
+- categories
+- installed sources/extensions
+- popular browsing and cross-source search
+- manga/chapter metadata
+- chapter page retrieval for the reader
+- favorites via `updateManga`
+- read/progress state via `updateChapter`
+- chapter downloads via Suwayomi's downloader queue
+- extension installation through Suwayomi
 
-## Source architecture
+Suwayomi provides the underlying capabilities for extension installation/execution, source search/browsing, library/categories, automated updates/downloads, offline downloads, tracking, backups and OPDS. citeturn0search0turn1search1
 
-The frontend talks to `/api/manga/*`. The backend should provide a provider abstraction with a Mihon-compatible extension runtime. Suwayomi is the preferred integration boundary because it explicitly supports Mihon/Tachiyomi extensions and exposes library, categories, updates, downloads and tracking capabilities.
+## Configure Suwayomi
 
-The application must not hard-code individual source websites. Extension identifiers, source metadata, authentication and scraping/runtime concerns belong to the provider layer.
+oniDash expects a running Suwayomi server at `http://127.0.0.1:4567` by default. Change this in `backend/oniDash.Api/appsettings.json`:
+
+```json
+"Manga": {
+  "Suwayomi": {
+    "BaseUrl": "http://127.0.0.1:4567",
+    "AccessToken": "",
+    "TimeoutSeconds": 30
+  }
+}
+```
+
+Suwayomi supports Windows and ships a WebUI. Its current server API is GraphQL; the integration uses the current schema rather than the deprecated pre-v1 REST API. citeturn0search0turn3search2
+
+For extensions, configure an extension store/repository in Suwayomi, then install extensions from the Extensions UI/API. Current Suwayomi documentation explicitly requires users to configure an extension store rather than relying on a default bundled source repository. citeturn0search1
+
+## Reader flow
+
+1. oniDash loads the library from Suwayomi.
+2. Selecting a manga loads its chapters.
+3. Selecting a chapter calls `fetchChapterPages` through Suwayomi.
+4. The reader displays the returned page URLs.
+5. Page/chapter progress is written back with `updateChapter`.
+6. Downloads are queued through Suwayomi's downloader, so the same offline files and queue remain visible to Mihon-compatible clients.
+
+## Update/download behavior
+
+The dashboard's **Check for updates** action starts Suwayomi's library update job. New chapters are then surfaced through the update feed. Automatic new-chapter downloads should be configured in Suwayomi's server settings; this keeps downloader policy in the runtime that actually owns the files. Suwayomi documents `autoDownloadNewChapters`, download paths and related policies. citeturn0search7
+
+## Tracking, backup and sync
+
+Tracking, backup/restore, SyncYomi and OPDS are intentionally delegated to Suwayomi rather than reimplemented in oniDash. This avoids creating a second, incompatible manga database and lets Mihon/Suwayomi clients share the same state. Suwayomi currently advertises tracking, Mihon-compatible backups, SyncYomi and OPDS support. citeturn0search0turn1search1
 
 ## Safety and legal boundary
 
-oniDash should act as a reader/library client. It does not ship copyrighted manga or bundled third-party content. Users install/configure extensions and sources according to their own rights and applicable law. Extension code and licenses must be respected.
+oniDash does not ship copyrighted manga, bundled third-party source content, or source-specific scraping code. Users install/configure extensions and sources according to their own rights and applicable law. Extension code and licenses must be respected.
