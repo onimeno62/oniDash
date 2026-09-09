@@ -6,7 +6,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Audit current Core/Application/Infrastructure boundaries.
 - [x] Define canonical `MediaType`, `MediaItem`, `MediaFile`, `Library`, `Source`, `Artwork`, `Tag`, `Collection` contracts.
 - [x] Define canonical API error envelope and pagination conventions.
-- [x] Define common background `Job` model and status API (in-process runner; persistence remains future hardening).
+- [x] Define common background `Job` model and status API.
 - [ ] Add integration-test harness for API + temporary SQLite + temporary media folders.
 - [x] Fix any API routes that can fall through to SPA HTML.
 
@@ -17,7 +17,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Stable file identity and idempotent upsert.
 - [x] Missing-file detection.
 - [x] Scan jobs with progress/cancel/retry.
-- [ ] Scan diagnostics and per-file failures.
+- [x] Scan diagnostics and per-file failures.
 - [ ] Scanner integration tests.
 
 ## M2 — Metadata + artwork engine
