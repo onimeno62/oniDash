@@ -34,15 +34,6 @@ builder.Services.AddScoped<IHealthService, HealthService>();
 var app = builder.Build();
 app.UseCors();
 
-var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
-var spaIndex = Path.Combine(webRoot, "index.html");
-if (File.Exists(spaIndex))
-{
-    app.UseDefaultFiles();
-    app.UseStaticFiles();
-    app.MapFallbackToFile("index.html");
-}
-
 app.MapHealthEndpoints();
 app.MapLibraryEndpoints();
 app.MapTagEndpoints();
@@ -53,6 +44,18 @@ app.MapMusicEndpoints();
 app.MapMovieEndpoints();
 app.MapBooksEndpoints();
 app.MapMangaEndpoints();
+
+// API endpoints are registered before the SPA fallback so an unmatched /api/* request
+// cannot be satisfied by index.html. This keeps API clients on JSON/error semantics and
+// prevents HTML from masquerading as a successful API response.
+var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var spaIndex = Path.Combine(webRoot, "index.html");
+if (File.Exists(spaIndex))
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+    app.MapFallbackToFile("index.html");
+}
 
 try
 {
