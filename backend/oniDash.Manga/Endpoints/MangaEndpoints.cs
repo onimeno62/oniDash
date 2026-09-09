@@ -10,7 +10,7 @@ public static class MangaEndpoints
         group.MapGet("/library", async (SuwayomiClient client, CancellationToken ct) => Results.Ok(MapMangas((await client.LibraryAsync(ct)).GetProperty("mangas").GetProperty("nodes"))));
         group.MapGet("/continue-reading", async (SuwayomiClient client, CancellationToken ct) =>
         {
-            var items = MapMangas((await client.LibraryAsync(ct)).GetProperty("mangas").GetProperty("nodes"));
+            var items = MapMangas((await client.LibraryAsync(ct)).GetProperty("mangas").GetProperty("nodes")).EnumerateArray();
             return Results.Ok(items.Where(x => x.GetProperty("readCount").GetInt32() > 0).Take(12));
         });
         group.MapGet("/updates", async (SuwayomiClient client, CancellationToken ct) =>
@@ -20,14 +20,14 @@ public static class MangaEndpoints
             {
                 var manga = u.GetProperty("manga");
                 var chapter = manga.GetProperty("latestUploadedChapter");
-                return new { id = $"{manga.GetProperty("id").GetInt32()}-{chapter.GetProperty("id").GetInt32()}", mangaId = manga.GetProperty("id").GetInt32().ToString(), mangaTitle = manga.GetProperty("title").GetString(), coverUrl = manga.GetProperty("thumbnailUrl").GetString(), chapter = chapter.GetProperty("name").GetString(), publishedAtUtc = chapter.GetProperty("uploadDate").GetString(), sourceName = manga.GetProperty("source").GetProperty("name").GetString(), downloaded = false, read = chapter.GetProperty("isRead").GetBoolean() };
+                var source = manga.TryGetProperty("source", out var s) && s.ValueKind != JsonValueKind.Null ? s.GetProperty("name").GetString() : null;
+                return new { id = $"{manga.GetProperty("id").GetInt32()}-{chapter.GetProperty("id").GetInt32()}", mangaId = manga.GetProperty("id").GetInt32().ToString(), mangaTitle = manga.GetProperty("title").GetString(), coverUrl = manga.GetProperty("thumbnailUrl").GetString(), chapter = chapter.GetProperty("name").GetString(), publishedAtUtc = chapter.GetProperty("uploadDate").GetString(), sourceName = source, downloaded = false, read = chapter.GetProperty("isRead").GetBoolean() };
             });
             return Results.Ok(mapped);
         });
         group.MapGet("/categories", async (SuwayomiClient client, CancellationToken ct) => Results.Ok((await client.CategoriesAsync(ct)).GetProperty("categories").GetProperty("nodes").EnumerateArray().Select(x => new { id = x.GetProperty("id").GetInt32().ToString(), name = x.GetProperty("name").GetString(), count = x.GetProperty("mangas").GetProperty("totalCount").GetInt32() })));
         group.MapGet("/sources", async (SuwayomiClient client, CancellationToken ct) => Results.Ok((await client.SourcesAsync(ct)).GetProperty("sources").GetProperty("nodes").EnumerateArray().Select(x => new { id = x.GetProperty("id").GetString(), name = x.GetProperty("name").GetString(), language = x.GetProperty("lang").GetString(), installed = x.GetProperty("extension").GetProperty("isInstalled").GetBoolean(), enabled = x.GetProperty("extension").GetProperty("isInstalled").GetBoolean(), mangaCount = 0, iconUrl = x.GetProperty("iconUrl").GetString() })));
         group.MapGet("/extensions", async (SuwayomiClient client, CancellationToken ct) => Results.Ok(await client.ExtensionsAsync(ct)));
-
         group.MapGet("/browse/popular", async (SuwayomiClient client, CancellationToken ct) => Results.Ok(await Browse(client, "POPULAR", null, ct)));
         group.MapGet("/search", async (string q, SuwayomiClient client, CancellationToken ct) => Results.Ok(await Browse(client, "SEARCH", q, ct)));
         group.MapGet("/{id:int}", async (int id, SuwayomiClient client, CancellationToken ct) => Results.Ok((await client.MangaAsync(id, ct)).GetProperty("manga")));
@@ -55,7 +55,13 @@ public static class MangaEndpoints
             return Results.Ok(await client.DownloadAsync(ids, ct));
         });
         group.MapPost("/update", async (SuwayomiClient client, CancellationToken ct) => Results.Ok(await client.UpdateLibraryAsync(ct)));
-        group.MapPost("/sources/install", async (InstallSourceRequest request, SuwayomiClient client, CancellationToken ct) => Results.Ok(await client.InstallExtensionAsync(request.SourceId, ct)));
+        group.MapPost("/sources/install", async (InstallSourceRequest request, SuwayomiClient client, CancellationToken ct) =>
+        {
+            var source = (await client.SourcesAsync(ct)).GetProperty("sources").GetProperty("nodes").EnumerateArray().FirstOrDefault(x => x.GetProperty("id").GetString() == request.SourceId);
+            if (source.ValueKind == JsonValueKind.Undefined) return Results.NotFound();
+            var packageName = source.GetProperty("extension").GetProperty("pkgName").GetString();
+            return Results.Ok(await client.InstallExtensionAsync(packageName!, ct));
+        });
         return app;
     }
 
@@ -70,7 +76,7 @@ public static class MangaEndpoints
                 var mangas = (await client.BrowseSourceAsync(source.GetProperty("id").GetString()!, type, query, ct)).GetProperty("fetchSourceManga").GetProperty("mangas");
                 results.AddRange(MapMangas(mangas).EnumerateArray().Select(x => (object)x));
             }
-            catch { /* one broken source must not break discovery across all installed extensions */ }
+            catch { }
         }
         return results.Take(24).ToArray();
     }
