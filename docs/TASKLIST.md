@@ -6,33 +6,34 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Audit current Core/Application/Infrastructure boundaries.
 - [x] Define canonical `MediaType`, `MediaItem`, `MediaFile`, `Library`, `Source`, `Artwork`, `Tag`, `Collection` contracts.
 - [x] Define canonical API error envelope and pagination conventions.
-- [ ] Define common background `Job` model and status API.
+- [x] Define common background `Job` model and status API (in-process runner; persistence remains future hardening).
 - [ ] Add integration-test harness for API + temporary SQLite + temporary media folders.
 - [x] Fix any API routes that can fall through to SPA HTML.
 
 ## M1 — Unified scanner/indexer
-- [ ] Source CRUD and validation.
-- [ ] Safe recursive filesystem enumerator.
-- [ ] Extension/signature-based media handler registry.
-- [ ] Stable file identity and idempotent upsert.
-- [ ] Missing-file detection.
-- [ ] Scan jobs with progress/cancel/retry.
+- [x] Source CRUD and validation.
+- [x] Safe recursive filesystem enumerator.
+- [x] Extension/signature-based media handler registry.
+- [x] Stable file identity and idempotent upsert.
+- [x] Missing-file detection.
+- [x] Scan jobs with progress/cancel/retry.
 - [ ] Scan diagnostics and per-file failures.
 - [ ] Scanner integration tests.
 
 ## M2 — Metadata + artwork engine
-- [ ] `IMediaHandler` contract.
+- [x] `IMediaHandler` contract.
 - [ ] Audio metadata handler.
 - [ ] Video metadata handler.
 - [ ] EPUB/PDF/comic metadata handler.
 - [ ] Metadata normalization pipeline.
-- [ ] Provenance/confidence model.
+- [x] Provenance/confidence model.
 - [ ] Embedded artwork extraction.
-- [ ] Artwork cache and lifecycle.
-- [ ] Optional provider interfaces.
-- [ ] Enrichment preview/apply workflow; never implicit overwrite.
+- [x] Artwork cache and lifecycle contract.
+- [x] Optional provider interfaces.
+- [x] Enrichment preview/apply workflow contract; never implicit overwrite.
 
 ## M3 — Global search + library health
+- [x] Canonical cross-media search contract.
 - [ ] Canonical FTS document model.
 - [ ] Incremental index updates.
 - [ ] Full rebuild/recovery command.
