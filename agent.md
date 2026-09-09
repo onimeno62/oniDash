@@ -1,28 +1,27 @@
 # oniDash Agent Guide
 
-oniDash is a Windows-first, local-first media library platform. Its UI is a modern React web application hosted locally by a .NET backend and eventually packaged as a Windows desktop application.
+## Mission
+oniDash is a Windows-first, local-first media library platform. It is a modern local web application backed by .NET, SQLite and filesystem services, with eventual Windows desktop packaging.
+
+## Canonical documents
+Before implementing work, read:
+- `docs/PRODUCT-SPEC.md`
+- `docs/ARCHITECTURE-SPEC.md`
+- `docs/UI-SPEC.md`
+- `docs/TASKLIST.md`
+- `docs/ROADMAP.md`
+- `AGENTS.md`
+
+These documents are the source of truth for product direction and agent behavior.
 
 ## Stack
 - C# / .NET 10
 - ASP.NET Core
 - SQLite + Entity Framework Core
 - React + TypeScript
-- Tailwind CSS or equivalent utility-first styling
+- Tailwind CSS
 - xUnit; Vitest/Playwright where appropriate
-- WebView2 or Tauri-style desktop wrapper later
-
-## Repository shape
-```text
-backend/oniDash.Core
-backend/oniDash.Application
-backend/oniDash.Infrastructure
-backend/oniDash.Api
-backend/Plugins/*
-frontend/oniDash.Web
-desktop
-tests
-docs
-```
+- Windows desktop wrapper later
 
 ## Dependency direction
 ```text
@@ -30,12 +29,20 @@ UI → API → Application → Core
              ↓
        Infrastructure
              ↓
-           SQLite
+           SQLite/filesystem
 ```
-Plugins depend on Core/Application contracts; Core never depends on plugins.
+Plugins depend on Core/Application contracts. Core never depends on plugins.
 
-## First milestone
-Launch shell, API connection, local settings shell, polished responsive UI, theme support, and health check. Do not implement catalogues yet.
+## Execution discipline
+One milestone at a time. Take the first applicable unchecked task in `docs/TASKLIST.md`. Deliver complete vertical slices: implementation, tests, UI states, documentation and verification.
 
-## Discipline
-One milestone at a time. One coherent feature at a time. Keep builds/tests green. Do not over-engineer. Never claim success without verification.
+Never:
+- invent requirements to unblock yourself
+- silently mutate user media
+- make Internet access a core dependency
+- hide API errors behind frontend fallbacks
+- claim a build/test passed without running it
+- mark a task complete without evidence
+
+## Current priority
+Platform foundation → scanner/indexer → metadata/artwork → global search/health → Music hardening → Movies/Anime → Manga → Books → unified dashboard → Windows productization.
