@@ -9,44 +9,30 @@ using Xunit;
 
 namespace oniDash.Api.Tests;
 
-/// <summary>
-/// Boots the real API host against an isolated SQLite file per test collection.
-/// </summary>
 public sealed class OniDashApiFactory : WebApplicationFactory<Program>
 {
-    private readonly string _databasePath = Path.Combine(
-        Path.GetTempPath(),
-        $"onidash-tests-{Guid.NewGuid():N}.db");
+    private readonly string _databasePath = Path.Combine(Path.GetTempPath(), $"onidash-tests-{Guid.NewGuid():N}.db");
+    private readonly string _mediaRoot = Path.Combine(Path.GetTempPath(), $"onidash-media-{Guid.NewGuid():N}");
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
+        Directory.CreateDirectory(_mediaRoot);
         builder.UseEnvironment("Testing");
         builder.ConfigureHostConfiguration(config => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            // Foreign Keys=True mirrors the production connection string (cascades + integrity).
             ["ConnectionStrings:OniDash"] = $"Data Source={_databasePath};Foreign Keys=True",
         }));
-
         return base.CreateHost(builder);
     }
 
     public string DatabasePath => _databasePath;
+    public string MediaRoot => _mediaRoot;
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-
-        try
-        {
-            if (File.Exists(_databasePath))
-            {
-                File.Delete(_databasePath);
-            }
-        }
-        catch (IOException)
-        {
-            // Best-effort cleanup; leftover temp files are harmless.
-        }
+        try { if (File.Exists(_databasePath)) File.Delete(_databasePath); } catch (IOException) { }
+        try { if (Directory.Exists(_mediaRoot)) Directory.Delete(_mediaRoot, recursive: true); } catch (IOException) { }
     }
 }
 
@@ -55,11 +41,8 @@ public sealed class HealthEndpointTests(OniDashApiFactory factory) : IClassFixtu
     [Fact]
     public async Task Health_endpoint_returns_healthy_report_from_sqlite()
     {
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync("/api/health");
+        var response = await factory.CreateClient().GetAsync("/api/health");
         var report = await response.Content.ReadFromJsonAsync<AppHealthReportDto>();
-
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(report);
         Assert.Equal("Healthy", report.Status);
@@ -70,42 +53,38 @@ public sealed class HealthEndpointTests(OniDashApiFactory factory) : IClassFixtu
     [Fact]
     public async Task Health_endpoint_serializes_enums_and_camel_case_properties()
     {
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync("/api/health");
-        var json = await response.Content.ReadAsStringAsync();
-        using var document = JsonDocument.Parse(json);
-
+        var response = await factory.CreateClient().GetAsync("/api/health");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("Healthy", document.RootElement.GetProperty("status").GetString());
         Assert.Equal("Ok", document.RootElement.GetProperty("databaseStatus").GetString());
         Assert.True(document.RootElement.TryGetProperty("timestamp", out _));
     }
 
     [Fact]
+    public void Test_factory_provisions_isolated_sqlite_and_media_roots()
+    {
+        Assert.True(Directory.Exists(factory.MediaRoot));
+        Assert.True(factory.MediaRoot.StartsWith(Path.GetTempPath(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task Startup_applies_migrations_and_creates_the_sqlite_file()
     {
-        Assert.True(File.Exists(factory.DatabasePath), "expected the local SQLite database file to exist after startup");
+        _ = factory.CreateClient();
+        Assert.True(File.Exists(factory.DatabasePath));
     }
 
     [Fact]
     public async Task Broken_database_reports_unhealthy_with_service_unavailable()
     {
         using var brokenFactory = new BrokenDatabaseFactory();
-        var client = brokenFactory.CreateClient();
-
-        var response = await client.GetAsync("/api/health");
-        var json = await response.Content.ReadAsStringAsync();
-        using var document = JsonDocument.Parse(json);
-
+        var response = await brokenFactory.CreateClient().GetAsync("/api/health");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Equal("Unhealthy", document.RootElement.GetProperty("status").GetString());
         Assert.Equal("Unavailable", document.RootElement.GetProperty("databaseStatus").GetString());
     }
 
-    /// <summary>
-    /// Boots the API against an SQLite path inside a directory that cannot exist, proving the
-    /// app stays up and reports degraded health instead of crashing.
-    /// </summary>
     private sealed class BrokenDatabaseFactory : WebApplicationFactory<Program>
     {
         protected override IHost CreateHost(IHostBuilder builder)
@@ -115,11 +94,9 @@ public sealed class HealthEndpointTests(OniDashApiFactory factory) : IClassFixtu
             {
                 ["ConnectionStrings:OniDash"] = $"Data Source={Path.Combine(Path.GetTempPath(), $"no-such-dir-{Guid.NewGuid():N}", "x.db")}",
             }));
-
             return base.CreateHost(builder);
         }
     }
 
-    /// <summary>Mirrors the API contract without coupling tests to EF entities.</summary>
     private sealed record AppHealthReportDto(string Status, string Version, string DatabaseStatus, DateTimeOffset Timestamp);
 }
