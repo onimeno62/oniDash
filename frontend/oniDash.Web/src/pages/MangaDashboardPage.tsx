@@ -49,8 +49,8 @@ export function MangaDashboardPage() {
 
   const stats = useMemo(() => ({ total: library?.length ?? 0, reading: library?.filter(x => x.status === 'reading').length ?? 0, unread: library?.reduce((n, x) => n + (x.unreadCount ?? 0), 0) ?? 0, favorites: library?.filter(x => x.favorite).length ?? 0 }), [library]);
 
-  const favorite = async (m: MangaSummary) => { await setFavorite(m.id, !m.favorite); setLibrary((xs) => xs?.map(x => x.id === m.id ? { ...x, favorite: !x.favorite } : x)); setSelected((x) => x?.id === m.id ? { ...x, favorite: !x.favorite } : x); };
-  const markCompleted = async (m: MangaSummary) => { await setStatus(m.id, 'completed'); setLibrary((xs) => xs?.map(x => x.id === m.id ? { ...x, status: 'completed' } : x)); };
+  const favorite = async (m: MangaSummary) => { await setFavorite(m.id, !m.favorite); setLibrary((xs) => (xs ? xs.map(x => x.id === m.id ? { ...x, favorite: !x.favorite } : x) : xs)); setSelected((x) => x?.id === m.id ? { ...x, favorite: !x.favorite } : x); };
+  const markCompleted = async (m: MangaSummary) => { await setStatus(m.id, 'completed'); setLibrary((xs) => (xs ? xs.map(x => x.id === m.id ? { ...x, status: 'completed' } : x) : xs)); };
   const refresh = () => load();
   const update = async () => { setBusy(true); try { await (await import('../api/manga')).updateLibrary(); refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Update failed.'); } finally { setBusy(false); } };
 
