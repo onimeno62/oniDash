@@ -8,6 +8,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/music/playlists', label: 'Playlists', description: 'Manual and smart Music playlists.', icon: MusicIcon },
   { to: '/music/insights', label: 'Music insights', description: 'Music statistics and library health.', icon: ActivityIcon },
   { to: '/movies', label: 'Movies', description: 'Your film collection with posters and resume playback.', icon: FilmIcon },
+  { to: '/books', label: 'Books', description: 'Your bookshelf with reading progress, ratings, series and favorites.', icon: LibraryIcon },
   { to: '/search', label: 'Search', description: 'Global search across your entire library.', icon: SearchIcon },
   { to: '/health', label: 'API Health', description: 'Connection status of the local oniDash API.', icon: ActivityIcon },
   { to: '/settings', label: 'Settings', description: 'Appearance, libraries, plugins, and playback.', icon: SlidersIcon },
