@@ -2,161 +2,20 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderApp } from './test-utils';
 
-const apiMocks = vi.hoisted(() => ({
-  fetchLibraries: vi.fn(),
-  fetchMusicArtists: vi.fn(),
-  fetchMusicAlbums: vi.fn(),
-  fetchMusicTracks: vi.fn(),
-  fetchMusicOverview: vi.fn(),
-  fetchMusicPlaylists: vi.fn(),
-  fetchMusicGenres: vi.fn(),
-  fetchMusicFavorites: vi.fn(),
-  fetchMusicHistory: vi.fn(),
-  fetchMusicTopTracks: vi.fn(),
-}));
-
-vi.mock('../api/libraries', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../api/libraries')>()),
-  fetchLibraries: apiMocks.fetchLibraries,
-}));
-
-vi.mock('../api/music', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../api/music')>()),
-  ...apiMocks,
-}));
-
+const apiMocks = vi.hoisted(() => ({ fetchLibraries: vi.fn(), fetchMusicArtists: vi.fn(), fetchMusicAlbums: vi.fn(), fetchMusicTracks: vi.fn(), fetchMusicOverview: vi.fn(), fetchMusicPlaylists: vi.fn(), fetchMusicGenres: vi.fn(), fetchMusicFavorites: vi.fn(), fetchMusicHistory: vi.fn(), fetchMusicTopTracks: vi.fn() }));
+vi.mock('../api/libraries', async (importOriginal) => ({ ...(await importOriginal<typeof import('../api/libraries')>()), fetchLibraries: apiMocks.fetchLibraries }));
+vi.mock('../api/music', async (importOriginal) => ({ ...(await importOriginal<typeof import('../api/music')>()), ...apiMocks }));
 const musicLibrary = { id: 'lib-1', name: 'Music', createdAtUtc: '2026-01-15T10:00:00Z' };
-
-// jsdom does not implement media playback; the player only needs the control surface.
-beforeAll(() => {
-  window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
-  window.HTMLMediaElement.prototype.pause = vi.fn();
-  window.HTMLMediaElement.prototype.load = vi.fn();
-});
-
+beforeAll(() => { window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined); window.HTMLMediaElement.prototype.pause = vi.fn(); window.HTMLMediaElement.prototype.load = vi.fn(); });
 const artist = { id: 'artist-1', name: 'Kavinsky' };
-
-const album = {
-  id: 'album-1',
-  title: 'OutRun',
-  artistName: 'Kavinsky',
-  year: 2013,
-  hasCover: false,
-};
-
-function track(overrides: Partial<{ id: string; title: string; artistName: string; albumTitle: string; albumId: string }> = {}) {
-  const { id = 'track-1', title = 'Nightcall', artistName = 'Kavinsky', albumTitle = 'OutRun', albumId = 'album-1' } = overrides;
-  return {
-    id,
-    mediaItemId: `item-${id}`,
-    title,
-    artistName,
-    albumTitle,
-    albumId,
-    hasCover: false,
-    trackNumber: 1,
-    discNumber: null,
-    year: 2013,
-    durationSeconds: 258.4,
-    genre: 'Synthwave',
-  };
-}
-
+const album = { id: 'album-1', title: 'OutRun', artistName: 'Kavinsky', year: 2013, hasCover: false };
+function track(overrides: Partial<{ id: string; title: string; artistName: string; albumTitle: string; albumId: string }> = {}) { const { id = 'track-1', title = 'Nightcall', artistName = 'Kavinsky', albumTitle = 'OutRun', albumId = 'album-1' } = overrides; return { id, mediaItemId: `item-${id}`, title, artistName, albumTitle, albumId, hasCover: false, trackNumber: 1, discNumber: null, year: 2013, durationSeconds: 258.4, genre: 'Synthwave', rating: 0 }; }
 describe('MusicDashboardPage', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    apiMocks.fetchLibraries.mockResolvedValue([musicLibrary]);
-    apiMocks.fetchMusicArtists.mockResolvedValue([]);
-    apiMocks.fetchMusicAlbums.mockResolvedValue([]);
-    apiMocks.fetchMusicTracks.mockResolvedValue([]);
-    apiMocks.fetchMusicOverview.mockResolvedValue(null);
-    apiMocks.fetchMusicPlaylists.mockResolvedValue([]);
-    apiMocks.fetchMusicGenres.mockResolvedValue([]);
-    apiMocks.fetchMusicFavorites.mockResolvedValue([]);
-    apiMocks.fetchMusicHistory.mockResolvedValue([]);
-    apiMocks.fetchMusicTopTracks.mockResolvedValue([]);
-  });
-
-  async function seedCatalog() {
-    apiMocks.fetchMusicArtists.mockResolvedValue([artist]);
-    apiMocks.fetchMusicAlbums.mockResolvedValue([album]);
-    apiMocks.fetchMusicTracks.mockResolvedValue([track()]);
-  }
-
-  it('loads the dashboard for the first library and queries the catalogue', async () => {
-    renderApp('/music');
-
-    expect(await screen.findByRole('heading', { name: 'Your music universe.' })).toBeInTheDocument();
-    expect(apiMocks.fetchMusicArtists).toHaveBeenCalledWith('lib-1', { limit: 500 });
-    expect(apiMocks.fetchMusicTracks).toHaveBeenCalledWith('lib-1', { limit: 1000 });
-  });
-
-  it('renders albums and track rows from the catalogue in the library tab', async () => {
-    await seedCatalog();
-    const user = userEvent.setup();
-    renderApp('/music');
-
-    await screen.findByRole('heading', { name: 'Your music universe.' });
-    await user.click(screen.getByRole('button', { name: 'library' }));
-
-    expect(screen.getByText('OutRun')).toBeInTheDocument();
-    expect(screen.getByText('Nightcall')).toBeInTheDocument();
-    expect(screen.getByText('4:18')).toBeInTheDocument();
-  });
-
-  it('plays a track through the player bar when its play button is clicked', async () => {
-    await seedCatalog();
-    const user = userEvent.setup();
-    renderApp('/music');
-
-    await screen.findByRole('heading', { name: 'Your music universe.' });
-    await user.click(screen.getByRole('button', { name: 'library' }));
-
-    await screen.findByRole('button', { name: 'Play Nightcall' });
-    await user.click(screen.getByRole('button', { name: 'Play Nightcall' }));
-
-    const bar = await screen.findByTestId('player-bar');
-    // The track name appears in the bar header and again in the queue popover.
-    expect(within(bar).getAllByText('Nightcall').length).toBeGreaterThan(0);
-    // The active track row now offers Pause (the bar toggle only flips after the
-    // audio element reports playback, which jsdom does not simulate).
-    expect(screen.getByRole('button', { name: 'Pause Nightcall' })).toBeInTheDocument();
-
-    await user.click(within(bar).getByRole('button', { name: 'Stop' }));
-    await waitFor(() => {
-      expect(screen.queryByTestId('player-bar')).not.toBeInTheDocument();
-    });
-  });
-
-  it('filters the track list when an artist is selected', async () => {
-    apiMocks.fetchMusicArtists.mockResolvedValue([artist, { id: 'artist-2', name: 'Perturbator' }]);
-    apiMocks.fetchMusicTracks.mockResolvedValue([
-      track(),
-      track({ id: 'track-2', title: 'Cryptonight', artistName: 'Perturbator', albumTitle: 'Uncanny Valley', albumId: 'album-2' }),
-    ]);
-    const user = userEvent.setup();
-    renderApp('/music');
-
-    await screen.findByRole('heading', { name: 'Your music universe.' });
-    await user.click(screen.getByRole('button', { name: 'library' }));
-
-    expect(screen.getByText('Nightcall')).toBeInTheDocument();
-    expect(screen.getByText('Cryptonight')).toBeInTheDocument();
-
-    await user.selectOptions(screen.getByDisplayValue('All artists'), 'Kavinsky');
-
-    expect(screen.getByText('Nightcall')).toBeInTheDocument();
-    expect(screen.queryByText('Cryptonight')).not.toBeInTheDocument();
-  });
-
-  it('shows an error state with retry when the catalogue request fails', async () => {
-    apiMocks.fetchMusicArtists.mockRejectedValue(new Error('offline'));
-    const user = userEvent.setup();
-    renderApp('/music');
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Music dashboard unavailable');
-    apiMocks.fetchMusicArtists.mockResolvedValue([]);
-    await user.click(screen.getByRole('button', { name: /Retry/ }));
-    expect(await screen.findByRole('heading', { name: 'Your music universe.' })).toBeInTheDocument();
-  });
+  beforeEach(() => { vi.resetAllMocks(); apiMocks.fetchLibraries.mockResolvedValue([musicLibrary]); apiMocks.fetchMusicArtists.mockResolvedValue([]); apiMocks.fetchMusicAlbums.mockResolvedValue([]); apiMocks.fetchMusicTracks.mockResolvedValue([]); apiMocks.fetchMusicOverview.mockResolvedValue(null); apiMocks.fetchMusicPlaylists.mockResolvedValue([]); apiMocks.fetchMusicGenres.mockResolvedValue([]); apiMocks.fetchMusicFavorites.mockResolvedValue([]); apiMocks.fetchMusicHistory.mockResolvedValue([]); apiMocks.fetchMusicTopTracks.mockResolvedValue([]); });
+  async function seedCatalog() { apiMocks.fetchMusicArtists.mockResolvedValue([artist]); apiMocks.fetchMusicAlbums.mockResolvedValue([album]); apiMocks.fetchMusicTracks.mockResolvedValue([track()]); }
+  it('loads the dashboard for the first library and queries the catalogue', async () => { renderApp('/music'); expect(await screen.findByRole('heading', { name: 'Your music universe.' })).toBeInTheDocument(); expect(apiMocks.fetchMusicArtists).toHaveBeenCalledWith('lib-1', { limit: 500 }); expect(apiMocks.fetchMusicTracks).toHaveBeenCalledWith('lib-1', { limit: 1000 }); });
+  it('renders albums and track rows from the catalogue in the library tab', async () => { await seedCatalog(); const user = userEvent.setup(); renderApp('/music'); await screen.findByRole('heading', { name: 'Your music universe.' }); await user.click(screen.getByRole('button', { name: 'All songs' })); expect(screen.getByText('OutRun')).toBeInTheDocument(); expect(screen.getByText('Nightcall')).toBeInTheDocument(); expect(screen.getByText('4:18')).toBeInTheDocument(); });
+  it('plays a track through the player bar when its play button is clicked', async () => { await seedCatalog(); const user = userEvent.setup(); renderApp('/music'); await screen.findByRole('heading', { name: 'Your music universe.' }); await user.click(screen.getByRole('button', { name: 'All songs' })); await screen.findByRole('button', { name: 'Play Nightcall' }); await user.click(screen.getByRole('button', { name: 'Play Nightcall' })); const bar = await screen.findByTestId('player-bar'); expect(within(bar).getAllByText('Nightcall').length).toBeGreaterThan(0); expect(screen.getByRole('button', { name: 'Pause Nightcall' })).toBeInTheDocument(); await user.click(within(bar).getByRole('button', { name: 'Stop' })); await waitFor(() => { expect(screen.queryByTestId('player-bar')).not.toBeInTheDocument(); }); });
+  it('filters the track list when an artist is selected', async () => { apiMocks.fetchMusicArtists.mockResolvedValue([artist, { id: 'artist-2', name: 'Perturbator' }]); apiMocks.fetchMusicTracks.mockResolvedValue([track(), track({ id: 'track-2', title: 'Cryptonight', artistName: 'Perturbator', albumTitle: 'Uncanny Valley', albumId: 'album-2' })]); const user = userEvent.setup(); renderApp('/music'); await screen.findByRole('heading', { name: 'Your music universe.' }); await user.click(screen.getByRole('button', { name: 'All songs' })); expect(screen.getByText('Nightcall')).toBeInTheDocument(); expect(screen.getByText('Cryptonight')).toBeInTheDocument(); await user.selectOptions(screen.getByDisplayValue('All artists'), 'Kavinsky'); expect(screen.getByText('Nightcall')).toBeInTheDocument(); expect(screen.queryByText('Cryptonight')).not.toBeInTheDocument(); });
+  it('shows an error state with retry when the catalogue request fails', async () => { apiMocks.fetchMusicArtists.mockRejectedValue(new Error('offline')); const user = userEvent.setup(); renderApp('/music'); expect(await screen.findByRole('alert')).toHaveTextContent('Music dashboard unavailable'); apiMocks.fetchMusicArtists.mockResolvedValue([]); await user.click(screen.getByRole('button', { name: /Retry/ })); expect(await screen.findByRole('heading', { name: 'Your music universe.' })).toBeInTheDocument(); });
 });

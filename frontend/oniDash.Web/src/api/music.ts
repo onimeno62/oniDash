@@ -6,7 +6,8 @@ export interface MusicMetadata { title: string | null; trackArtist: string | nul
 export interface MusicFavorite { id: string; entityType: string; entityId: string; createdAtUtc: string; }
 export interface MusicPlayHistory { id: string; trackId: string; startedAtUtc: string; completedAtUtc: string | null; playedSeconds: number; completionRatio: number; source: string; }
 export interface PlaylistSummary { id: string; name: string; description: string | null; isSmart: boolean; updatedAtUtc: string; }
-export interface PlaylistDetail extends PlaylistSummary { smartQuery: string | null; tracks: TrackSummary[]; }
+export interface PlaylistTrack extends TrackSummary { itemId: string | null; }
+export interface PlaylistDetail extends PlaylistSummary { smartQuery: string | null; tracks: PlaylistTrack[]; }
 export interface SmartRule { genre?: string; artistContains?: string; minYear?: number; maxYear?: number; sort?: 'title' | 'duration' | 'year'; limit?: number; }
 export interface MusicOverview { tracks: number; albums: number; artists: number; playlists: number; favorites: number; listeningSeconds: number; }
 export interface MusicHealth { database: boolean; tracks: number; lastUpdatedUtc: string | null; }
@@ -23,8 +24,11 @@ export function recordMusicPlay(trackId: string, playedSeconds: number, completi
 export function fetchMusicPlaylists(signal?: AbortSignal): Promise<PlaylistSummary[]> { return apiFetch<PlaylistSummary[]>('/music/playlists', { signal }); }
 export function fetchMusicPlaylist(id: string, options: PageOptions = {}): Promise<PlaylistDetail> { const p = new URLSearchParams(); if (options.limit !== undefined) p.set('limit', String(options.limit)); if (options.offset !== undefined) p.set('offset', String(options.offset)); return apiFetch<PlaylistDetail>(`/music/playlists/${encodeURIComponent(id)}?${p}`, { signal: options.signal }); }
 export function createMusicPlaylist(payload: { name: string; description?: string; isSmart?: boolean; smartQuery?: string }): Promise<PlaylistSummary> { return apiFetch<PlaylistSummary>('/music/playlists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); }
+export function updateMusicPlaylist(id: string, payload: { name: string; description?: string; isSmart?: boolean; smartQuery?: string }): Promise<PlaylistSummary> { return apiFetch<PlaylistSummary>(`/music/playlists/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); }
 export function deleteMusicPlaylist(id: string): Promise<void> { return apiFetch<void>(`/music/playlists/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
 export function addTrackToMusicPlaylist(playlistId: string, trackId: string, position?: number): Promise<void> { return apiFetch<void>(`/music/playlists/${encodeURIComponent(playlistId)}/items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId, position }) }); }
+export function removeTrackFromMusicPlaylist(playlistId: string, itemId: string): Promise<void> { return apiFetch<void>(`/music/playlists/${encodeURIComponent(playlistId)}/items/${encodeURIComponent(itemId)}`, { method: 'DELETE' }); }
+export function reorderMusicPlaylist(playlistId: string, itemIds: string[]): Promise<void> { return apiFetch<void>(`/music/playlists/${encodeURIComponent(playlistId)}/items/reorder`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itemIds }) }); }
 export function fetchMusicMetadata(trackId: string, signal?: AbortSignal): Promise<MusicMetadata> { return apiFetch<MusicMetadata>(`/music/tracks/${encodeURIComponent(trackId)}/metadata`, { signal }); }
 export function updateMusicMetadata(trackId: string, update: Partial<Omit<MusicMetadata, 'durationSeconds'>> & { confirmed: true }): Promise<void> { return apiFetch<void>(`/music/tracks/${encodeURIComponent(trackId)}/metadata`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(update) }); }
 export function fetchMusicRating(trackId: string, signal?: AbortSignal): Promise<number> { return apiFetch<{ rating: number }>(`/music/tracks/${encodeURIComponent(trackId)}/rating`, { signal }).then((x) => x.rating); }
