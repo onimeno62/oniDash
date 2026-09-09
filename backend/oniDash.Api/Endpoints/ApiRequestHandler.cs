@@ -1,15 +1,13 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using oniDash.Application.Common;
 
 namespace oniDash.Api.Endpoints;
 
 /// <summary>
-/// Translates application exceptions to consistent HTTP error semantics, once, for every
-/// endpoint. Endpoint bodies stay thin: parse input, call the use case, wrap the result.
+/// Translates application exceptions to the platform error envelope. Endpoint bodies stay
+/// thin: parse input, call the use case, wrap the result.
 /// </summary>
 public static class ApiRequestHandler
 {
@@ -21,15 +19,22 @@ public static class ApiRequestHandler
         }
         catch (NotFoundException ex)
         {
-            return Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not found", detail: ex.Message);
+            return Error(StatusCodes.Status404NotFound, ApiErrorCodes.NotFound, ex.Message);
         }
         catch (ConflictException ex)
         {
-            return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "Conflict", detail: ex.Message);
+            return Error(StatusCodes.Status409Conflict, ApiErrorCodes.Conflict, ex.Message);
         }
         catch (ValidationException ex)
         {
-            return Results.ValidationProblem(ex.Errors);
+            return Error(StatusCodes.Status400BadRequest, ApiErrorCodes.Validation, ex.Message, ex.Errors);
         }
     }
+
+    private static IResult Error(
+        int statusCode,
+        string code,
+        string message,
+        IReadOnlyDictionary<string, string[]>? details = null) =>
+        Results.Json(new ApiError(code, message, null, details), statusCode: statusCode);
 }
