@@ -11,7 +11,7 @@ using oniDash.Music.Persistence;
 namespace oniDash.Music.Persistence.Migrations
 {
     [DbContext(typeof(MusicDbContext))]
-    [Migration("20260909192503_AddMusicTrackRatings")]
+    [Migration("20260909035624_AddMusicTrackRatings")]
     partial class AddMusicTrackRatings
     {
         /// <inheritdoc />

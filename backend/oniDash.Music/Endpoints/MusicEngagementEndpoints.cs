@@ -18,7 +18,12 @@ public static class MusicEngagementEndpoints
         var music = app.MapGroup("/api/music").WithTags("Music");
 
         music.MapGet("/favorites", async (MusicDbContext db, CancellationToken ct) =>
-            Results.Ok(await db.Favorites.AsNoTracking().OrderByDescending(f => f.CreatedAtUtc).ToListAsync(ct)));
+        {
+            // SQLite cannot ORDER BY DateTimeOffset; favorites are a small set, so the
+            // newest-first ordering happens after the rows are read (rule 7: local-first).
+            var favorites = await db.Favorites.AsNoTracking().ToListAsync(ct);
+            return Results.Ok(favorites.OrderByDescending(f => f.CreatedAtUtc).ToList());
+        });
 
         music.MapPost("/favorites", async (MusicDbContext db, FavoriteRequest request, CancellationToken ct) =>
         {
@@ -40,8 +45,11 @@ public static class MusicEngagementEndpoints
 
         music.MapGet("/history", async (MusicDbContext db, int? limit, int? offset, CancellationToken ct) =>
         {
+            // SQLite cannot ORDER BY DateTimeOffset, so paging happens over the in-memory
+            // list (local history stays small; rule 7). Newest first.
             var take = Math.Clamp(limit ?? 50, 1, 200); var skip = Math.Max(0, offset ?? 0);
-            return Results.Ok(await db.PlayHistory.AsNoTracking().OrderByDescending(h => h.StartedAtUtc).Skip(skip).Take(take).ToListAsync(ct));
+            var history = await db.PlayHistory.AsNoTracking().ToListAsync(ct);
+            return Results.Ok(history.OrderByDescending(h => h.StartedAtUtc).ThenBy(h => h.Id).Skip(skip).Take(take).ToList());
         });
 
         music.MapPost("/tracks/{trackId:guid}/play", async (MusicDbContext db, Guid trackId, PlayRequest request, CancellationToken ct) =>
