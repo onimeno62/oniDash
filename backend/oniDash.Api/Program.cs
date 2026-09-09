@@ -13,7 +13,6 @@ using oniDash.Movies.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Local-only API by default (docs/SECURITY.md); the SPA is served from the same origin.
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
     .AllowAnyHeader()
@@ -33,11 +32,8 @@ builder.Services.AddSingleton<IAppVersionProvider, AssemblyAppVersionProvider>()
 builder.Services.AddScoped<IHealthService, HealthService>();
 
 var app = builder.Build();
-
 app.UseCors();
 
-// Serve the built SPA when its assets are deployed to wwwroot (production / packaging).
-// During frontend development the Vite dev server proxies /api instead.
 var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var spaIndex = Path.Combine(webRoot, "index.html");
 if (File.Exists(spaIndex))
@@ -55,48 +51,33 @@ app.MapScanEndpoints();
 app.MapSearchEndpoints();
 app.MapMusicEndpoints();
 app.MapMovieEndpoints();
+app.MapBooksEndpoints();
+app.MapMangaEndpoints();
 
-// Bring the local database up to date without failing startup; health reports degradation.
 try
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        await scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>()
-            .InitializeAsync()
-            .ConfigureAwait(false);
-    }
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>().InitializeAsync().ConfigureAwait(false);
 }
 catch (Exception ex)
 {
     app.Logger.LogError(ex, "Database initialization failed; the API will report unhealthy database status");
 }
 
-// The music plugin owns its schema and migrates independently; its failure must not
-// take core library functions down.
 try
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        await scope.ServiceProvider.GetRequiredService<MusicDatabaseInitializer>()
-            .InitializeAsync()
-            .ConfigureAwait(false);
-    }
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<MusicDatabaseInitializer>().InitializeAsync().ConfigureAwait(false);
 }
 catch (Exception ex)
 {
     app.Logger.LogError(ex, "Music catalogue initialization failed; music endpoints may be unavailable");
 }
 
-// The movie plugin owns its schema and migrates independently; its failure must not
-// take core (or music) functions down.
 try
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        await scope.ServiceProvider.GetRequiredService<MoviesDatabaseInitializer>()
-            .InitializeAsync()
-            .ConfigureAwait(false);
-    }
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<MoviesDatabaseInitializer>().InitializeAsync().ConfigureAwait(false);
 }
 catch (Exception ex)
 {
@@ -104,6 +85,4 @@ catch (Exception ex)
 }
 
 app.Run();
-
-// Exposed for WebApplicationFactory-based integration tests.
 public partial class Program;
