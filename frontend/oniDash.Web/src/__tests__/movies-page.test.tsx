@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderApp } from './test-utils';
 
@@ -58,8 +58,8 @@ describe('MoviesPage', () => {
   it('shows the empty state when the library has no movies', async () => {
     renderApp('/movies');
 
-    expect(await screen.findByRole('heading', { name: 'No movies here yet' })).toBeInTheDocument();
-    expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: undefined, limit: 100 });
+    expect(await screen.findByRole('heading', { name: 'No movies found' })).toBeInTheDocument();
+    expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: undefined, limit: 200 });
   });
 
   it('renders the movie grid with titles, years, and runtimes', async () => {
@@ -76,8 +76,9 @@ describe('MoviesPage', () => {
     apiMocks.fetchContinueWatching.mockResolvedValue([movie({ id: 'movie-2', title: 'Heat', progress: 4000 })]);
     renderApp('/movies');
 
-    expect(await screen.findByRole('region', { name: 'Continue watching' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Continue watching' })).toBeInTheDocument();
     expect(screen.getByText('Heat')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
   });
 
   it('sends the watched filter to the API', async () => {
@@ -87,28 +88,35 @@ describe('MoviesPage', () => {
 
     await screen.findByText('The Matrix');
     apiMocks.fetchMovies.mockClear();
-    await user.selectOptions(screen.getByLabelText('Watched filter'), 'unwatched');
+    await user.click(screen.getByRole('button', { name: 'Unwatched' }));
 
     await waitFor(() => {
-      expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: false, limit: 100 });
+      expect(apiMocks.fetchMovies).toHaveBeenCalledWith('lib-9', { signal: expect.anything(), watched: false, limit: 200 });
     });
   });
 
   it('opens the player, saves progress on close, and marks movies watched', async () => {
-    apiMocks.fetchMovies.mockResolvedValue([movie()]);
+    apiMocks.fetchMovies.mockResolvedValue([movie({ progress: 4000 })]);
+    apiMocks.fetchContinueWatching.mockResolvedValue([movie({ id: 'movie-2', title: 'Heat', progress: 4000 })]);
     const user = userEvent.setup();
     renderApp('/movies');
 
     await screen.findByText('The Matrix');
     await user.click(screen.getByRole('button', { name: 'Play The Matrix' }));
 
-    const player = await screen.findByTestId('movie-player');
-    expect(within(player).getByText('The Matrix (1999)')).toBeInTheDocument();
-
-    await user.click(within(player).getByRole('button', { name: 'Mark watched' }));
+    // The player overlay streams the movie and remembers the position on close.
+    expect(await screen.findByRole('button', { name: 'Close player' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close player' }));
     await waitFor(() => {
-      expect(apiMocks.setMovieWatched).toHaveBeenCalledWith('movie-1', true);
+      expect(apiMocks.saveWatchProgress).toHaveBeenCalledWith('movie-1', 4000);
     });
-    expect(screen.queryByTestId('movie-player')).not.toBeInTheDocument();
+
+    // The details drawer offers the watched toggle.
+    await user.click(screen.getByRole('button', { name: 'Details' }));
+    await user.click(await screen.findByRole('button', { name: 'Mark watched' }));
+    await waitFor(() => {
+      expect(apiMocks.setMovieWatched).toHaveBeenCalledWith('movie-2', true);
+    });
+    expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
   });
 });
