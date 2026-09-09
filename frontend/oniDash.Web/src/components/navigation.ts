@@ -4,9 +4,7 @@ export interface NavItem { to: string; label: string; description: string; icon:
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', description: 'Overview of your oniDash library.', icon: DashboardIcon, end: true },
   { to: '/library', label: 'Library', description: 'Browse and manage your media collections.', icon: LibraryIcon },
-  { to: '/music', label: 'Music', description: 'Artists, albums, and playback from your indexed audio.', icon: MusicIcon },
-  { to: '/music/playlists', label: 'Playlists', description: 'Manual and smart Music playlists.', icon: MusicIcon },
-  { to: '/music/insights', label: 'Music insights', description: 'Music statistics and library health.', icon: ActivityIcon },
+  { to: '/music', label: 'Music', description: 'Unified music dashboard: library, categories, playlists, favorites, history and insights.', icon: MusicIcon },
   { to: '/movies', label: 'Movies', description: 'Your film collection with posters and resume playback.', icon: FilmIcon },
   { to: '/search', label: 'Search', description: 'Global search across your entire library.', icon: SearchIcon },
   { to: '/health', label: 'API Health', description: 'Connection status of the local oniDash API.', icon: ActivityIcon },
