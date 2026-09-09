@@ -7,6 +7,11 @@ public static class MangaEndpoints
     public static IEndpointRouteBuilder MapMangaEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/manga");
+        group.MapGet("/health", async (SuwayomiClient client, CancellationToken ct) =>
+        {
+            try { return Results.Ok(await client.QueryAsync("query{ aboutServer { name version } }", null, ct)); }
+            catch (Exception ex) { return Results.Json(new { connected = false, error = ex.Message }, statusCode: StatusCodes.Status503ServiceUnavailable); }
+        });
         group.MapGet("/library", async (SuwayomiClient client, CancellationToken ct) => Results.Ok(MapMangas((await client.LibraryAsync(ct)).GetProperty("mangas").GetProperty("nodes"))));
         group.MapGet("/continue-reading", async (SuwayomiClient client, CancellationToken ct) =>
         {
