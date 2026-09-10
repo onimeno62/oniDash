@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using oniDash.Application.Abstractions;
 using oniDash.Application.Libraries;
+using oniDash.Application.Media;
 using oniDash.Application.Scanning;
 using oniDash.Application.Search;
 using oniDash.Infrastructure.Persistence;
@@ -34,6 +35,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddScoped<IMediaFileRepository, MediaFileRepository>();
         services.AddSingleton<IFileEnumerator, FileEnumerator>();
+        services.AddSingleton<IMediaTypeDetector, MediaTypeDetector>();
+        services.AddSingleton<MediaHandlerRegistry>();
         services.AddScoped<ISearchService, FtsSearchService>();
 
         return services;
