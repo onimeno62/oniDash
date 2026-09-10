@@ -41,8 +41,8 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Cross-media search endpoint and backend search service.
 - [ ] Filters for media type/library/tag/status in the canonical search surface.
 - [ ] Search result navigation parity across all media modules.
-- [ ] Library health dashboard.
-- [ ] Missing files / missing artwork / metadata errors / duplicates diagnostics.
+- [x] Library health dashboard.
+- [x] Missing files / missing artwork / metadata errors / duplicates diagnostics.
 
 ## M4 — Music completion
 - [ ] Verify existing Music APIs against canonical platform contracts.
@@ -76,7 +76,6 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 ## M7 — Books platform
 - [ ] Align Books with scanner/indexer.
 - [ ] EPUB/PDF metadata and cover extraction.
-- [ ] Author/series model.
 - [ ] Reading progress and bookmarks.
 - [ ] EPUB/PDF reader.
 - [ ] Search/filter/sort parity.
