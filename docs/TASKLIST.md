@@ -77,6 +77,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Align Books with scanner/indexer.
 - [x] EPUB/PDF metadata and cover extraction.
 - [ ] Author/series model.
+- [ ] Reading progress and bookmarks.
 - [ ] EPUB/PDF reader.
 - [ ] Search/filter/sort parity.
 - [ ] Library health integration.
@@ -99,4 +100,4 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [ ] Data migration/backup/restore.
 
 ## Agent execution rule
-Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs. Never mark a task complete without evidence.
+Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs.
