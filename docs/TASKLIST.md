@@ -5,10 +5,10 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 ## M0 — Platform foundation hardening
 - [x] Audit current Core/Application/Infrastructure boundaries.
 - [x] Define canonical `MediaType`, `MediaItem`, `MediaFile`, `Library`, `Source`, `Artwork`, `Tag`, `Collection` contracts.
-- [x] Define canonical API error envelope and pagination conventions.
+- [x] Define canonical API error and pagination contracts.
 - [x] Define common background `Job` model and status API.
 - [x] Add integration-test harness for API + temporary SQLite + temporary media folders.
-- [x] Fix any API routes that can fall through to SPA HTML.
+- [x] Fix API routes that can fall through to SPA HTML.
 
 ## M1 — Unified scanner/indexer
 - [x] Source CRUD and validation.
@@ -49,7 +49,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [ ] Fix remaining type/build issues.
 - [x] Library health and duplicate tooling.
 - [ ] ReplayGain/loudness metadata where supported.
-- [ ] Gapless/crossfade where technically supported.
+- [x] Gapless/crossfade where technically supported.
 - [x] Media-key/Windows playback integration boundary.
 - [x] Complete lyrics/provider error handling.
 
