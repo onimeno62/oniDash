@@ -28,7 +28,9 @@ public static class ApiRequestHandler
         }
         catch (ValidationException ex)
         {
-            return Error(StatusCodes.Status400BadRequest, ApiErrorCodes.Validation, ex.Message, ex.Errors);
+            // ValidationException exposes IDictionary; the API envelope wants IReadOnlyDictionary.
+            var details = ex.Errors is null ? null : new Dictionary<string, string[]>(ex.Errors);
+            return Error(StatusCodes.Status400BadRequest, ApiErrorCodes.Validation, ex.Message, details);
         }
     }
 

@@ -15,7 +15,9 @@ public sealed record SearchRequest(
     Guid? LibraryId = null,
     IReadOnlyCollection<Guid>? TagIds = null);
 
-public sealed record SearchResult(
+// Named distinctly from the legacy ISearchService.SearchResult so both contract
+// generations coexist while the canonical search migration is in progress.
+public sealed record CanonicalSearchResult(
     Guid MediaItemId,
     Guid? MediaFileId,
     MediaType MediaType,
@@ -25,7 +27,7 @@ public sealed record SearchResult(
     string? ArtworkPath);
 
 public sealed record SearchResponse(
-    IReadOnlyList<SearchResult> Items,
+    IReadOnlyList<CanonicalSearchResult> Items,
     int TotalCount,
     int Limit,
     int Offset,
