@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using oniDash.Application.Abstractions;
+using oniDash.Application.Health;
 using oniDash.Application.Libraries;
 using oniDash.Application.Media;
 using oniDash.Application.Scanning;
 using oniDash.Application.Search;
+using oniDash.Infrastructure.Health;
 using oniDash.Infrastructure.Persistence;
 using oniDash.Infrastructure.Repositories;
 using oniDash.Infrastructure.Scanning;
@@ -26,6 +28,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddDbContext<OniDashDbContext>(options => options.UseSqlite(connectionString));
         services.AddScoped<IDatabaseHealthProbe, SqliteDatabaseHealthProbe>();
         services.AddScoped<IDatabaseInitializer, DatabaseInitializer>();
+        services.AddScoped<ILibraryHealthProbe, SqliteLibraryHealthProbe>();
 
         services.AddSingleton<IFileSystemProbe, FileSystemProbe>();
         services.AddScoped<ILibraryRepository, LibraryRepository>();
@@ -43,7 +46,7 @@ public static class InfrastructureServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Local-first default: <c>%LOCALAPPDATA%\oniDash\onidash.db</c>. An explicit
+    /// Local-first default: <c>%LOCALAPPDATA%/oniDash/onidash.db</c>. An explicit
     /// <c>ConnectionStrings:OniDash</c> or <c>OniDash:DataDirectory</c> overrides it, which is
     /// how tests isolate their database.
     /// </summary>

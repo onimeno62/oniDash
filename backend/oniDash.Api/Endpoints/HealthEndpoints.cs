@@ -6,7 +6,7 @@ using oniDash.Application.Health;
 namespace oniDash.Api.Endpoints;
 
 /// <summary>
-/// Thin health endpoints: no business logic here — the use case lives in
+/// Thin health endpoints: no business logic here: the use case lives in
 /// <see cref="HealthService"/> and is exposed as a DTO.
 /// </summary>
 public static class HealthEndpoints
@@ -29,6 +29,12 @@ public static class HealthEndpoints
             .WithSummary("Overall application health, including database connectivity.")
             .Produces<AppHealthReport>(StatusCodes.Status200OK)
             .Produces<AppHealthReport>(StatusCodes.Status503ServiceUnavailable);
+
+        group.MapGet("/library", async (ILibraryHealthService healthService, CancellationToken cancellationToken) =>
+            Results.Ok(await healthService.GetReportAsync(cancellationToken).ConfigureAwait(false)))
+            .WithName("GetLibraryHealth")
+            .WithSummary("Actionable local library counts, including missing files and artwork coverage.")
+            .Produces<LibraryHealthReport>(StatusCodes.Status200OK);
 
         return app;
     }
