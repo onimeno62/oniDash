@@ -11,13 +11,13 @@ using oniDash.Infrastructure.Persistence;
 
 namespace oniDash.Infrastructure.Search;
 
-/// <summary>SQLite FTS5-backed global search with safe prefix matching, library/media-type filtering, and bounded pagination.</summary>
+/// <summary>SQLite FTS5-backed global search with safe prefix matching and bounded filters.</summary>
 public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchService
 {
     private const int MaxLimit = 200;
     private const int MaxOffset = 10_000;
 
-    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0, MediaType? mediaType = null)
+    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0, MediaType? mediaType = null, IReadOnlyCollection<Guid>? tagIds = null, string? status = null)
     {
         var match = BuildMatchExpression(query);
         if (match.Length == 0) return [];
@@ -25,20 +25,37 @@ public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchServic
         var effectiveOffset = Math.Clamp(offset, 0, MaxOffset);
         var extensions = mediaType is null ? Array.Empty<string>() : ExtensionsFor(mediaType.Value).ToArray();
         var extensionPlaceholders = string.Join(",", extensions.Select((_, index) => $"@extension{index}"));
-        var mediaFilter = extensions.Length == 0
-            ? mediaType is null ? string.Empty : "AND 1 = 0"
-            : $"AND EXISTS (SELECT 1 FROM MediaFiles mf JOIN LibrarySources ls ON ls.Id = mf.LibrarySourceId WHERE mf.MediaItemId = i.Id AND ls.LibraryId = i.LibraryId AND LOWER(mf.Extension) IN ({extensionPlaceholders}))";
+        var predicates = new List<string>();
         var parameters = new List<SqliteParameter> { new("@match", match) };
-        if (libraryId is not null) parameters.Add(new SqliteParameter("@libraryId", libraryId.Value));
+        if (libraryId is not null) { predicates.Add("i.LibraryId = @libraryId"); parameters.Add(new SqliteParameter("@libraryId", libraryId.Value)); }
+        if (extensions.Length == 0 && mediaType is not null) predicates.Add("1 = 0");
+        else if (extensions.Length > 0) predicates.Add($"EXISTS (SELECT 1 FROM MediaFiles mf JOIN LibrarySources ls ON ls.Id = mf.LibrarySourceId WHERE mf.MediaItemId = i.Id AND ls.LibraryId = i.LibraryId AND LOWER(mf.Extension) IN ({extensionPlaceholders}))");
         for (var index = 0; index < extensions.Length; index++) parameters.Add(new SqliteParameter($"@extension{index}", extensions[index]));
+
+        if (tagIds is { Count: > 0 })
+        {
+            var tagPlaceholders = string.Join(",", tagIds.Select((_, index) => $"@tag{index}"));
+            predicates.Add($"EXISTS (SELECT 1 FROM MediaItemTags mit WHERE mit.MediaItemId = i.Id AND mit.TagId IN ({tagPlaceholders}))");
+            var index = 0;
+            foreach (var tagId in tagIds) parameters.Add(new SqliteParameter($"@tag{index++}", tagId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normalizedStatus = status.Trim().ToLowerInvariant();
+            if (normalizedStatus is not ("available" or "missing")) throw new ArgumentException("Status must be 'available' or 'missing'.", nameof(status));
+            predicates.Add(normalizedStatus == "missing"
+                ? "EXISTS (SELECT 1 FROM MediaFiles mf WHERE mf.MediaItemId = i.Id AND mf.MissingSinceUtc IS NOT NULL)"
+                : "EXISTS (SELECT 1 FROM MediaFiles mf WHERE mf.MediaItemId = i.Id AND mf.MissingSinceUtc IS NULL)");
+        }
+
+        var whereFilters = predicates.Count == 0 ? string.Empty : "AND " + string.Join(" AND ", predicates);
         parameters.Add(new SqliteParameter("@limit", effectiveLimit));
         parameters.Add(new SqliteParameter("@offset", effectiveOffset));
         var sql = $"""
             SELECT i.Id AS ItemId, i.DisplayName AS DisplayName, i.LibraryId AS LibraryId, l.Name AS LibraryName
             FROM MediaItemsFts f JOIN MediaItems i ON i.Id = f.ItemId JOIN Libraries l ON l.Id = i.LibraryId
-            WHERE MediaItemsFts MATCH @match
-            {(libraryId is null ? string.Empty : "AND i.LibraryId = @libraryId ")}
-            {mediaFilter}
+            WHERE MediaItemsFts MATCH @match {whereFilters}
             ORDER BY bm25(MediaItemsFts), i.DisplayName LIMIT @limit OFFSET @offset
             """;
         var rows = await dbContext.Database.SqlQueryRaw<SearchRow>(sql, parameters.Cast<object>().ToArray()).ToListAsync(cancellationToken).ConfigureAwait(false);

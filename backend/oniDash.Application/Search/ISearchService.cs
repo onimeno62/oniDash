@@ -11,7 +11,16 @@ public sealed record SearchResult(Guid ItemId, string DisplayName, Guid LibraryI
 
 public interface ISearchService
 {
-    /// <summary>Full-text search across indexed media items with optional library, media-type, and offset filters.</summary>
-    Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0, MediaType? mediaType = null);
+    /// <summary>Full-text search across indexed media items with library, media type, tag, availability, and offset filters.</summary>
+    Task<IReadOnlyList<SearchResult>> SearchAsync(
+        string query,
+        Guid? libraryId = null,
+        int limit = 50,
+        CancellationToken cancellationToken = default,
+        int offset = 0,
+        MediaType? mediaType = null,
+        IReadOnlyCollection<Guid>? tagIds = null,
+        string? status = null);
+
     Task<int> ReindexAsync(CancellationToken cancellationToken = default);
 }
