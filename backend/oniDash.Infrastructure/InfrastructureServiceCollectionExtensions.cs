@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using oniDash.Application.Abstractions;
 using oniDash.Application.Libraries;
+using oniDash.Application.Media;
 using oniDash.Application.Scanning;
 using oniDash.Application.Search;
 using oniDash.Infrastructure.Persistence;
@@ -34,6 +35,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ICollectionRepository, CollectionRepository>();
         services.AddScoped<IMediaFileRepository, MediaFileRepository>();
         services.AddSingleton<IFileEnumerator, FileEnumerator>();
+        services.AddSingleton<IMediaTypeDetector, MediaTypeDetector>();
+        services.AddSingleton<MediaHandlerRegistry>();
         services.AddScoped<ISearchService, FtsSearchService>();
 
         return services;
@@ -66,8 +69,6 @@ public static class InfrastructureServiceCollectionExtensions
             DataSource = Path.Combine(directory, "onidash.db"),
             Mode = SqliteOpenMode.ReadWriteCreate,
             Pooling = true,
-            // The model declares ON DELETE CASCADE relationships; SQLite only enforces
-            // foreign keys when asked, so cascade deletes and integrity checks actually work.
             ForeignKeys = true,
         }.ToString();
     }
