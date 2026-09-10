@@ -32,6 +32,25 @@ public static class MusicInsightsEndpoints
             tracks = await db.Tracks.CountAsync(ct),
             lastUpdatedUtc = await db.Tracks.OrderByDescending(t => t.UpdatedAtUtc).Select(t => (DateTimeOffset?)t.UpdatedAtUtc).FirstOrDefaultAsync(ct),
         }));
+        music.MapGet("/health/duplicates", async (MusicDbContext db, int? limit, CancellationToken ct) =>
+        {
+            var groups = await db.Tracks.AsNoTracking()
+                .GroupBy(track => new { track.LibraryId, track.Title, track.ArtistName, track.AlbumId })
+                .Where(group => group.Count() > 1)
+                .OrderByDescending(group => group.Count())
+                .Take(Math.Clamp(limit ?? 100, 1, 500))
+                .Select(group => new
+                {
+                    libraryId = group.Key.LibraryId,
+                    title = group.Key.Title,
+                    artistName = group.Key.ArtistName,
+                    albumId = group.Key.AlbumId,
+                    count = group.Count(),
+                    trackIds = group.Select(track => track.Id).ToList(),
+                })
+                .ToListAsync(ct);
+            return Results.Ok(groups);
+        });
         return app;
     }
 }

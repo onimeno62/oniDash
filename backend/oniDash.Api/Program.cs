@@ -4,6 +4,7 @@ using oniDash.Api.Services;
 using oniDash.Application;
 using oniDash.Application.Abstractions;
 using oniDash.Application.Health;
+using oniDash.Books;
 using oniDash.Infrastructure;
 using oniDash.Infrastructure.Persistence;
 using oniDash.Music;
@@ -27,6 +28,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddMusic(builder.Configuration);
 builder.Services.AddMovies(builder.Configuration);
+builder.Services.AddBooks();
 
 builder.Services.AddSingleton<IAppVersionProvider, AssemblyAppVersionProvider>();
 builder.Services.AddScoped<IHealthService, HealthService>();

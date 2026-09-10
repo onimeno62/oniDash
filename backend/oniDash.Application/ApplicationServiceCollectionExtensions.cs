@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
+using oniDash.Application.Health;
 using oniDash.Application.Jobs;
 using oniDash.Application.Libraries;
+using oniDash.Application.Media;
 using oniDash.Application.Scanning;
 
 namespace oniDash.Application;
@@ -16,11 +18,11 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ITagService, TagService>();
         services.AddScoped<ICollectionService, CollectionService>();
         services.AddScoped<IJobService, JobService>();
-
         services.AddScoped<IMediaItemResolver, PlaceholderMediaItemResolver>();
         services.AddScoped<IScanService, ScanService>();
         services.AddSingleton<IScanJobManager, ScanJobManager>();
-
+        services.AddScoped<IMediaMetadataNormalizer, MediaMetadataNormalizer>();
+        services.AddScoped<ILibraryHealthService, LibraryHealthService>();
         return services;
     }
 }

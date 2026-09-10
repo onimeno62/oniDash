@@ -16,5 +16,6 @@
     <ProjectReference Include="..\oniDash.Music\oniDash.Music.csproj" />
     <ProjectReference Include="..\oniDash.Movies\oniDash.Movies.csproj" />
     <ProjectReference Include="..\oniDash.Manga\oniDash.Manga.csproj" />
+    <ProjectReference Include="..\oniDash.Books\oniDash.Books.csproj" />
   </ItemGroup>
 </Project>
