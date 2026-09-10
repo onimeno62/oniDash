@@ -13,6 +13,7 @@ Audited against the platform rules on 2026-09-11.
 - Lyrics reads and writes use cancellation tokens and stay local-first.
 - Lyrics writes enforce a bounded payload and normalize line endings.
 - Lyrics reads avoid duplicate I/O, reject oversized files, and return structured 403/413/503 failures.
+- Duplicate diagnostics are read-only, library-scoped, bounded, and return the candidate track IDs for review.
 
 ## Remaining gaps
 

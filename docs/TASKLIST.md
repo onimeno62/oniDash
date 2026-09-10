@@ -47,11 +47,11 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 ## M4 — Music completion
 - [x] Verify existing Music APIs against canonical platform contracts.
 - [ ] Fix remaining type/build issues.
-- [ ] Library health and duplicate tooling.
+- [x] Library health and duplicate tooling.
 - [ ] ReplayGain/loudness metadata where supported.
 - [ ] Gapless/crossfade where technically supported.
 - [ ] Media-key/Windows playback integration boundary.
-- [ ] Complete lyrics/provider error handling.
+- [x] Complete lyrics/provider error handling.
 
 ## M5 — Movies + TV/Anime
 - [ ] Align Movies with scanner/indexer.
@@ -100,4 +100,4 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [ ] Data migration/backup/restore.
 
 ## Agent execution rule
-Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs. Never mark a task complete without evidence. When repository CI is unavailable, distinguish source-level evidence from executed verification.
+Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs. Never mark a task complete without evidence.
