@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using oniDash.Application.Scanning;
 using oniDash.Music.Cataloging;
 using oniDash.Music.Endpoints;
+using oniDash.Music.Metadata;
 using oniDash.Music.Persistence;
 using oniDash.Music.Tagging;
 
@@ -25,6 +26,7 @@ public static class MusicServiceCollectionExtensions
         services.AddScoped<MusicReindexService>();
         services.AddScoped<MusicDatabaseInitializer>();
         services.AddScoped<IMediaFileLocator, AudioFileLocator>();
+        services.AddScoped<IMediaHandler, AudioMediaHandler>();
         services.AddScoped<IIndexedMediaHandler, MusicIndexedMediaHandler>();
         return services;
     }
