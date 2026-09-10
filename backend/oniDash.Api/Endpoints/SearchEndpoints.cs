@@ -19,20 +19,29 @@ public static class SearchEndpoints
         var search = app.MapGroup("/api/search").WithTags("Search");
         search.MapGet("/", async (ISearchService search, string? q, Guid? libraryId, MediaType? mediaType, string? tagIds, string? status, int? limit, int? offset, CancellationToken ct) =>
         {
+            if (!TryParseTagIds(tagIds, out var parsedTagIds)) return Results.BadRequest(new { error = "tagIds must be a comma-separated list of GUIDs." });
+            var normalizedStatus = status?.Trim().ToLowerInvariant();
+            if (normalizedStatus is not null and not ("available" or "missing")) return Results.BadRequest(new { error = "status must be 'available' or 'missing'." });
             var effectiveLimit = limit is null or < 1 ? 50 : Math.Min(limit.Value, 200);
             var effectiveOffset = offset is null or < 0 ? 0 : Math.Min(offset.Value, 10_000);
-            var parsedTagIds = ParseTagIds(tagIds);
-            var results = await search.SearchAsync(q ?? string.Empty, libraryId, effectiveLimit, ct, effectiveOffset, mediaType, parsedTagIds, status);
+            var results = await search.SearchAsync(q ?? string.Empty, libraryId, effectiveLimit, ct, effectiveOffset, mediaType, parsedTagIds, normalizedStatus);
             return Results.Ok(results);
         });
         search.MapPost("/reindex", async (ISearchService search, CancellationToken ct) => Results.Ok(new { indexedItems = await search.ReindexAsync(ct) }));
         return app;
     }
 
-    private static IReadOnlyCollection<Guid>? ParseTagIds(string? value)
+    private static bool TryParseTagIds(string? value, out IReadOnlyCollection<Guid>? ids)
     {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-        var ids = value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(Guid.Parse).Distinct().ToArray();
-        return ids.Length == 0 ? null : ids;
+        ids = null;
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var parsed = new List<Guid>();
+        foreach (var part in value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!Guid.TryParse(part, out var id)) return false;
+            if (!parsed.Contains(id)) parsed.Add(id);
+        }
+        ids = parsed;
+        return true;
     }
 }
