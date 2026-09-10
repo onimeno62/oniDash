@@ -36,7 +36,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IMediaFileRepository, MediaFileRepository>();
         services.AddSingleton<IFileEnumerator, FileEnumerator>();
         services.AddSingleton<IMediaTypeDetector, MediaTypeDetector>();
-        services.AddSingleton<MediaHandlerRegistry>();
+        // Scoped: the registry materializes registered IMediaHandler instances eagerly, and
+        // catalogue handlers (e.g. the audio tag reader) carry scoped dependencies.
+        services.AddScoped<MediaHandlerRegistry>();
         services.AddScoped<ISearchService, FtsSearchService>();
 
         return services;
