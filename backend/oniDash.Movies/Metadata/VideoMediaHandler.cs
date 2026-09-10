@@ -31,7 +31,7 @@ public sealed class VideoMediaHandler(IVideoProbeReader reader, IVideoArtworkRea
                 artwork = [new ArtworkCandidate("thumbnail", "embedded", embedded.ContentType, embedded.Bytes.LongLength)];
         }
         var title = Path.GetFileNameWithoutExtension(descriptor.AbsolutePath).Trim();
-        var duration = probe?.DurationSeconds is { } seconds && seconds >= 0 ? TimeSpan.FromSeconds(seconds) : null;
+        var duration = probe?.DurationSeconds is { } seconds && seconds >= 0 ? (TimeSpan?)TimeSpan.FromSeconds(seconds) : null;
         return new MediaInspectionResult(string.IsNullOrWhiteSpace(title) ? null : title, duration, PositiveOrNull(probe?.Width), PositiveOrNull(probe?.Height), new Dictionary<string, string>(), artwork, MetadataProvenance.Local("local-video-probe", probe is null ? 0.25d : 1d));
     }
     private static string NormalizeExtension(string extension) => string.IsNullOrWhiteSpace(extension) ? string.Empty : extension.StartsWith('.') ? extension : "." + extension;
