@@ -3,18 +3,16 @@
 Audited against `main` on 2026-09-11.
 
 ## 1. TV / Anime series domain
-Not implemented. Movies has watch progress, but there are no canonical Series, Season, or Episode persistence contracts. Do not mark complete.
+Added the first platform-neutral `ISeriesCatalogue` contract and a read-only `/api/catalogue/series` boundary. Persistence and episode indexing remain future work.
 
 ## 2. Manga plugin architecture
-The frontend exposes source and extension concepts, but the backend implementation is not a real plugin runtime. Do not mark complete until the source boundary, installation lifecycle, and capability contracts are real.
+Added `IMediaPlugin` and `IMangaSource` capability contracts. Runtime installation and execution remain future work.
 
 ## 3. Books author / series model
-The Books metadata handler currently emits author and series values as normalized metadata fields. A typed persistence model and relationship queries are still missing. Do not mark complete.
+Added typed `BookAuthorSummary` and `BookSeriesSummary` contracts. Books persistence and relationship endpoints remain future work.
 
 ## 4. Books reader integration
-The dashboard supports progress controls, but there is no EPUB/PDF reader boundary or streaming contract. Do not mark complete.
+Added the cancellable `IBookReader` boundary. No reader implementation is registered yet, so the UI must treat it as unsupported.
 
 ## 5. Unified dashboard
-The current dashboard is still a foundation welcome screen. Continue listening/watching/reading, recently added, activity, favorites, and local-only recommendations are not implemented as a unified data surface.
-
-The next implementation should start with the TV/Anime canonical domain or the Books typed persistence model, not another cosmetic dashboard pass.
+Added `/unified`, a loading/error/empty-state dashboard backed by the series contract. Continue media/activity/favorites aggregation remains future work.
