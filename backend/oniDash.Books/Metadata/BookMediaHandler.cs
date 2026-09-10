@@ -14,12 +14,9 @@ public sealed class BookMediaHandler(IBookDocumentMetadataReader reader) : IMedi
     public bool CanHandle(MediaDescriptor descriptor) => Types.Contains(descriptor.MediaType) && Extensions.Contains(NormalizeExtension(descriptor.Extension));
     public async Task<MediaInspectionResult> InspectAsync(MediaDescriptor descriptor, CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!CanHandle(descriptor)) throw new InvalidOperationException($"Handler '{Id}' cannot handle '{descriptor.Extension}' as {descriptor.MediaType}.");
-        var metadata = await reader.ReadAsync(descriptor.AbsolutePath, descriptor.Extension, cancellationToken).ConfigureAwait(false);
-        var fields = new Dictionary<string, string>(metadata.Fields, StringComparer.OrdinalIgnoreCase);
-        if (metadata.PageCount is > 0 pages) fields["pageCount"] = pages.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        return new MediaInspectionResult(string.IsNullOrWhiteSpace(metadata.Title) ? null : metadata.Title.Trim(), null, null, null, fields, Array.Empty<ArtworkCandidate>(), MetadataProvenance.Local("local-document-metadata", metadata.Fields.Count == 0 ? 0.25d : 1d));
+        cancellationToken.ThrowIfCancellationRequested(); if (!CanHandle(descriptor)) throw new InvalidOperationException($"Handler '{Id}' cannot handle '{descriptor.Extension}' as {descriptor.MediaType}.");
+        var metadata = await reader.ReadAsync(descriptor.AbsolutePath, descriptor.Extension, cancellationToken).ConfigureAwait(false); var fields = new Dictionary<string, string>(metadata.Fields, StringComparer.OrdinalIgnoreCase); if (metadata.PageCount is > 0 pages) fields["pageCount"] = pages.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return new MediaInspectionResult(string.IsNullOrWhiteSpace(metadata.Title) ? null : metadata.Title.Trim(), null, null, null, fields, metadata.Artwork ?? Array.Empty<ArtworkCandidate>(), MetadataProvenance.Local("local-document-metadata", metadata.Fields.Count == 0 ? 0.25d : 1d));
     }
     private static string NormalizeExtension(string extension) => string.IsNullOrWhiteSpace(extension) ? string.Empty : extension.StartsWith('.') ? extension : "." + extension;
 }

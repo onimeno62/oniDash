@@ -28,7 +28,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] EPUB/PDF/comic metadata handler.
 - [x] Metadata normalization pipeline.
 - [x] Provenance/confidence model.
-- [ ] Embedded artwork extraction.
+- [x] Embedded artwork extraction.
 - [x] Artwork cache and lifecycle contract.
 - [x] Optional provider interfaces.
 - [x] Enrichment preview/apply workflow contract; never implicit overwrite.
@@ -77,7 +77,6 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [ ] Align Books with scanner/indexer.
 - [ ] EPUB/PDF metadata and cover extraction.
 - [ ] Author/series model.
-- [ ] Reading progress and bookmarks.
 - [ ] EPUB/PDF reader.
 - [ ] Search/filter/sort parity.
 - [ ] Library health integration.
