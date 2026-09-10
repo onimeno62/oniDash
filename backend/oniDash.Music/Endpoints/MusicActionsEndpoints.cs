@@ -15,6 +15,8 @@ namespace oniDash.Music.Endpoints;
 /// <summary>Destructive/file-system operations are explicit and validated server-side.</summary>
 public static class MusicActionsEndpoints
 {
+    private const int MaxLyricsCharacters = 1_000_000;
+
     public static IEndpointRouteBuilder MapMusicActionsEndpoints(this IEndpointRouteBuilder app)
     {
         var music = app.MapGroup("/api/music").WithTags("Music actions");
@@ -39,12 +41,18 @@ public static class MusicActionsEndpoints
         music.MapPost("/tracks/{trackId:guid}/lyrics", async (MusicDbContext db, IMediaFileLocator locator, Guid trackId, LyricsRequest request, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Text)) return Results.BadRequest(new { error = "Lyrics cannot be empty." });
+            if (request.Text.Length > MaxLyricsCharacters) return Results.BadRequest(new { error = $"Lyrics cannot exceed {MaxLyricsCharacters} characters." });
             var track = await db.Tracks.AsNoTracking().SingleOrDefaultAsync(t => t.Id == trackId, ct);
             if (track is null) return Results.NotFound();
             var location = await locator.LocateAsync(track.FileId, ct);
             if (location is null) return Results.NotFound();
             var path = Path.ChangeExtension(location.AbsolutePath, ".lrc");
-            await File.WriteAllTextAsync(path, request.Text.Replace("\r\n", "\n"), ct);
+            try
+            {
+                await File.WriteAllTextAsync(path, request.Text.Replace("\r\n", "\n"), ct);
+            }
+            catch (UnauthorizedAccessException) { return Results.Problem("Lyrics file is not writable.", statusCode: StatusCodes.Status403Forbidden); }
+            catch (IOException) { return Results.Problem("Lyrics file could not be written.", statusCode: StatusCodes.Status503ServiceUnavailable); }
             return Results.Ok(new { path, synchronized = request.Synchronized });
         });
 
@@ -56,8 +64,16 @@ public static class MusicActionsEndpoints
             if (location is null) return Results.NotFound();
             var path = Path.ChangeExtension(location.AbsolutePath, ".lrc");
             if (!File.Exists(path)) return Results.NotFound();
-            var text = await File.ReadAllTextAsync(path, ct);
-            return Results.Ok(new { text, synchronized = HasLrcTimestamps(text) });
+            try
+            {
+                var info = new FileInfo(path);
+                if (info.Length > MaxLyricsCharacters * 4L) return Results.Problem("Lyrics file is too large to read.", statusCode: StatusCodes.Status413PayloadTooLarge);
+                var text = await File.ReadAllTextAsync(path, ct);
+                if (text.Length > MaxLyricsCharacters) return Results.Problem("Lyrics file is too large to read.", statusCode: StatusCodes.Status413PayloadTooLarge);
+                return Results.Ok(new { text, synchronized = HasLrcTimestamps(text) });
+            }
+            catch (UnauthorizedAccessException) { return Results.Problem("Lyrics file is not readable.", statusCode: StatusCodes.Status403Forbidden); }
+            catch (IOException) { return Results.Problem("Lyrics file could not be read.", statusCode: StatusCodes.Status503ServiceUnavailable); }
         });
 
         music.MapGet("/tracks/{trackId:guid}/info", async (MusicDbContext db, IMediaFileLocator locator, Guid trackId, CancellationToken ct) =>

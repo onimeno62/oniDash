@@ -11,13 +11,12 @@ Audited against the platform rules on 2026-09-11.
 - Rating writes validate the 0–5 range and update timestamps.
 - Rename and file deletion are explicit endpoint actions, not implicit scanner behavior.
 - Lyrics reads and writes use cancellation tokens and stay local-first.
-
-## Fixed in this pass
-
-- Lyrics GET read the same `.lrc` file twice. It now reads once and derives synchronization from the same content.
+- Lyrics writes enforce a bounded payload and normalize line endings.
+- Lyrics reads avoid duplicate I/O, reject oversized files, and return structured 403/413/503 failures.
 
 ## Remaining gaps
 
 - Music endpoints still return several ad-hoc `{ error }` payloads instead of the platform error envelope.
 - Music DTOs are not yet unified with the canonical cross-media result envelope.
+- ReplayGain/loudness and Windows media-key boundaries remain unimplemented.
 - Full build/type verification requires the repository toolchain and is not claimed here.
