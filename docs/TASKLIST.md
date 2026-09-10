@@ -25,7 +25,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] `IMediaHandler` contract.
 - [x] Audio metadata handler.
 - [x] Video metadata handler.
-- [ ] EPUB/PDF/comic metadata handler.
+- [x] EPUB/PDF/comic metadata handler.
 - [ ] Metadata normalization pipeline.
 - [x] Provenance/confidence model.
 - [ ] Embedded artwork extraction.
