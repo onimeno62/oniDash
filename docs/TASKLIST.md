@@ -23,7 +23,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 
 ## M2 — Metadata + artwork engine
 - [x] `IMediaHandler` contract.
-- [ ] Audio metadata handler.
+- [x] Audio metadata handler.
 - [ ] Video metadata handler.
 - [ ] EPUB/PDF/comic metadata handler.
 - [ ] Metadata normalization pipeline.
