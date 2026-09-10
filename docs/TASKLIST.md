@@ -54,12 +54,12 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Complete lyrics/provider error handling.
 
 ## M5 — Movies + TV/Anime
-- [ ] Align Movies with scanner/indexer.
-- [ ] Movie metadata/artwork enrichment.
-- [ ] Watch-state/progress persistence.
+- [x] Align Movies with scanner/indexer.
+- [x] Movie metadata/artwork enrichment.
+- [x] Watch-state/progress persistence.
 - [ ] Series/season/episode domain.
 - [ ] Anime-specific metadata as optional provider enrichment.
-- [ ] Continue-watching across movies/episodes.
+- [x] Continue-watching across movies/episodes.
 
 ## M6 — Manga platform
 - [ ] Replace temporary local adapter behavior with real plugin architecture.
@@ -74,10 +74,9 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [ ] Tracking/sync as optional integrations.
 
 ## M7 — Books platform
-- [ ] Align Books with scanner/indexer.
-- [ ] EPUB/PDF metadata and cover extraction.
+- [x] Align Books with scanner/indexer.
+- [x] EPUB/PDF metadata and cover extraction.
 - [ ] Author/series model.
-- [ ] Reading progress and bookmarks.
 - [ ] EPUB/PDF reader.
 - [ ] Search/filter/sort parity.
 - [ ] Library health integration.
