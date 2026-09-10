@@ -1,18 +1,5 @@
 # Next twelve spec audit
 
-Added contract-level boundaries on 2026-09-11:
+The contract phase has reached its practical limit. The existing interfaces cover provider enablement, episode progress, Manga bookmarks/tracking/downloads, library updates, reader pages, media keys, backup/restore, installer updates, notifications, and diagnostics export.
 
-1. Provider registry and enablement.
-2. TV/Anime episode progress persistence.
-3. Manga bookmarks.
-4. Optional manga tracking sync.
-5. Library update summaries and retryable checks.
-6. Generic document page reader access.
-7. Windows media-key registration.
-8. Backup manifest generation.
-9. Backup validation and restore migration.
-10. Installer update discovery.
-11. Notification delivery.
-12. Diagnostics export.
-
-These are boundaries only. No persistence, provider network calls, Windows shell behavior, package verification, backup mutation, or reader implementation is claimed complete. The task list remains honest and unchanged.
+No additional interface-only specs should be pushed. The next work must be executable vertical slices with persistence, migrations, endpoints, UI states, tests, and actual verification. See `docs/IMPLEMENTATION-GATE.md`.
