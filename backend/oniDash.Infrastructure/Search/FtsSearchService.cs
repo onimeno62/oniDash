@@ -6,35 +6,50 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using oniDash.Application.Search;
+using oniDash.Core.Domain;
 using oniDash.Infrastructure.Persistence;
 
 namespace oniDash.Infrastructure.Search;
 
-/// <summary>SQLite FTS5-backed global search with safe prefix matching, library filtering, and bounded pagination.</summary>
+/// <summary>SQLite FTS5-backed global search with safe prefix matching, library/media-type filtering, and bounded pagination.</summary>
 public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchService
 {
     private const int MaxLimit = 200;
     private const int MaxOffset = 10_000;
 
-    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0)
+    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0, MediaType? mediaType = null)
     {
         var match = BuildMatchExpression(query);
         if (match.Length == 0) return [];
         var effectiveLimit = Math.Clamp(limit, 1, MaxLimit);
         var effectiveOffset = Math.Clamp(offset, 0, MaxOffset);
+        var mediaFilter = mediaType is null ? string.Empty : "AND EXISTS (SELECT 1 FROM MediaFiles mf JOIN LibrarySources ls ON ls.Id = mf.LibrarySourceId WHERE mf.MediaItemId = i.Id AND ls.LibraryId = i.LibraryId AND mf.Extension IN (@extensions))";
+        var parameters = new List<SqliteParameter> { new("@match", match) };
+        if (libraryId is not null) parameters.Add(new SqliteParameter("@libraryId", libraryId.Value));
+        if (mediaType is not null) parameters.Add(new SqliteParameter("@extensions", string.Join(',', ExtensionsFor(mediaType.Value))));
+        parameters.Add(new SqliteParameter("@limit", effectiveLimit));
+        parameters.Add(new SqliteParameter("@offset", effectiveOffset));
         var sql = $"""
             SELECT i.Id AS ItemId, i.DisplayName AS DisplayName, i.LibraryId AS LibraryId, l.Name AS LibraryName
             FROM MediaItemsFts f JOIN MediaItems i ON i.Id = f.ItemId JOIN Libraries l ON l.Id = i.LibraryId
             WHERE MediaItemsFts MATCH @match
             {(libraryId is null ? string.Empty : "AND i.LibraryId = @libraryId ")}
+            {mediaFilter}
             ORDER BY bm25(MediaItemsFts), i.DisplayName LIMIT @limit OFFSET @offset
             """;
-        var parameters = new List<SqliteParameter> { new("@match", match) };
-        if (libraryId is not null) parameters.Add(new SqliteParameter("@libraryId", libraryId.Value));
-        parameters.Add(new SqliteParameter("@limit", effectiveLimit)); parameters.Add(new SqliteParameter("@offset", effectiveOffset));
         var rows = await dbContext.Database.SqlQueryRaw<SearchRow>(sql, parameters.Cast<object>().ToArray()).ToListAsync(cancellationToken).ConfigureAwait(false);
         return rows.Select(row => new SearchResult(row.ItemId, row.DisplayName, row.LibraryId, row.LibraryName)).ToList();
     }
+
+    private static IReadOnlyList<string> ExtensionsFor(MediaType type) => type switch
+    {
+        MediaType.Audio => [".mp3", ".flac", ".m4a", ".aac", ".ogg", ".wav"],
+        MediaType.Video => [".mp4", ".mkv", ".avi", ".mov", ".webm"],
+        MediaType.Book => [".epub", ".mobi", ".azw", ".azw3", ".fb2"],
+        MediaType.Document => [".pdf"],
+        MediaType.Comic => [".cbz", ".cbr", ".cb7"],
+        _ => []
+    };
 
     public async Task<int> ReindexAsync(CancellationToken cancellationToken = default)
     {

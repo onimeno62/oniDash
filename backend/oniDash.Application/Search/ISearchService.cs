@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using oniDash.Core.Domain;
 
 namespace oniDash.Application.Search;
 
@@ -10,7 +11,7 @@ public sealed record SearchResult(Guid ItemId, string DisplayName, Guid LibraryI
 
 public interface ISearchService
 {
-    /// <summary>Full-text search across all indexed media items with optional library and offset filters.</summary>
-    Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0);
+    /// <summary>Full-text search across indexed media items with optional library, media-type, and offset filters.</summary>
+    Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0, MediaType? mediaType = null);
     Task<int> ReindexAsync(CancellationToken cancellationToken = default);
 }
