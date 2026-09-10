@@ -16,27 +16,22 @@ public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchServic
     private const int MaxLimit = 200;
     private const int MaxOffset = 10_000;
 
-    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, int offset = 0, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, CancellationToken cancellationToken = default, int offset = 0)
     {
         var match = BuildMatchExpression(query);
         if (match.Length == 0) return [];
         var effectiveLimit = Math.Clamp(limit, 1, MaxLimit);
         var effectiveOffset = Math.Clamp(offset, 0, MaxOffset);
         var sql = $"""
-            SELECT i.Id AS ItemId, i.DisplayName AS DisplayName,
-                   i.LibraryId AS LibraryId, l.Name AS LibraryName
-            FROM MediaItemsFts f
-            JOIN MediaItems i ON i.Id = f.ItemId
-            JOIN Libraries l ON l.Id = i.LibraryId
+            SELECT i.Id AS ItemId, i.DisplayName AS DisplayName, i.LibraryId AS LibraryId, l.Name AS LibraryName
+            FROM MediaItemsFts f JOIN MediaItems i ON i.Id = f.ItemId JOIN Libraries l ON l.Id = i.LibraryId
             WHERE MediaItemsFts MATCH @match
             {(libraryId is null ? string.Empty : "AND i.LibraryId = @libraryId ")}
-            ORDER BY bm25(MediaItemsFts), i.DisplayName
-            LIMIT @limit OFFSET @offset
+            ORDER BY bm25(MediaItemsFts), i.DisplayName LIMIT @limit OFFSET @offset
             """;
         var parameters = new List<SqliteParameter> { new("@match", match) };
         if (libraryId is not null) parameters.Add(new SqliteParameter("@libraryId", libraryId.Value));
-        parameters.Add(new SqliteParameter("@limit", effectiveLimit));
-        parameters.Add(new SqliteParameter("@offset", effectiveOffset));
+        parameters.Add(new SqliteParameter("@limit", effectiveLimit)); parameters.Add(new SqliteParameter("@offset", effectiveOffset));
         var rows = await dbContext.Database.SqlQueryRaw<SearchRow>(sql, parameters.Cast<object>().ToArray()).ToListAsync(cancellationToken).ConfigureAwait(false);
         return rows.Select(row => new SearchResult(row.ItemId, row.DisplayName, row.LibraryId, row.LibraryName)).ToList();
     }
@@ -45,11 +40,9 @@ public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchServic
     {
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM MediaItemsFts", cancellationToken).ConfigureAwait(false);
         await dbContext.Database.ExecuteSqlRawAsync("INSERT INTO MediaItemsFts(ItemId, LibraryId, DisplayName) SELECT Id, LibraryId, DisplayName FROM MediaItems", cancellationToken).ConfigureAwait(false);
-        await using var command = dbContext.Database.GetDbConnection().CreateCommand();
-        command.CommandText = "SELECT COUNT(*) FROM MediaItemsFts";
+        await using var command = dbContext.Database.GetDbConnection().CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM MediaItemsFts";
         if (command.Connection?.State != System.Data.ConnectionState.Open) await command.Connection!.OpenAsync(cancellationToken).ConfigureAwait(false);
-        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-        return result is null ? 0 : Convert.ToInt32(result);
+        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false); return result is null ? 0 : Convert.ToInt32(result);
     }
 
     internal static string BuildMatchExpression(string query)
@@ -59,11 +52,5 @@ public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchServic
         return string.Join(" AND ", terms);
     }
 
-    private sealed class SearchRow
-    {
-        public Guid ItemId { get; set; }
-        public string DisplayName { get; set; } = string.Empty;
-        public Guid LibraryId { get; set; }
-        public string LibraryName { get; set; } = string.Empty;
-    }
+    private sealed class SearchRow { public Guid ItemId { get; set; } public string DisplayName { get; set; } = string.Empty; public Guid LibraryId { get; set; } public string LibraryName { get; set; } = string.Empty; }
 }

@@ -8,7 +8,7 @@ using oniDash.Application.Search;
 
 namespace oniDash.Api.Endpoints;
 
-/// <summary>Global FTS search with optional library filter and bounded offset pagination.</summary>
+/// <summary>Global search endpoints with optional library filter and bounded offset pagination.</summary>
 public static class SearchEndpoints
 {
     public static IEndpointRouteBuilder MapSearchEndpoints(this IEndpointRouteBuilder app)
@@ -18,10 +18,14 @@ public static class SearchEndpoints
         {
             var effectiveLimit = limit is null or < 1 ? 50 : Math.Min(limit.Value, 200);
             var effectiveOffset = offset is null or < 0 ? 0 : Math.Min(offset.Value, 10_000);
-            var results = await search.SearchAsync(q ?? string.Empty, libraryId, effectiveLimit, effectiveOffset, ct);
+            var results = await search.SearchAsync(q ?? string.Empty, libraryId, effectiveLimit, ct, effectiveOffset);
             return Results.Ok(results);
         });
-        search.MapPost("/reindex", async (ISearchService search, CancellationToken ct) => Results.Ok(new { indexedItems = await search.ReindexAsync(ct) }));
+        search.MapPost("/reindex", async (ISearchService search, CancellationToken ct) =>
+        {
+            var indexedItems = await search.ReindexAsync(ct);
+            return Results.Ok(new { indexedItems });
+        });
         return app;
     }
 }
