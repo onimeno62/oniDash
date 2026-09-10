@@ -14,21 +14,14 @@ public sealed record SearchResult(
 
 public interface ISearchService
 {
-    /// <summary>
-    /// Full-text search across all indexed media items. All whitespace-separated terms
-    /// must match (prefix matching per term), optionally constrained to one library,
-    /// ranked most-relevant-first. A blank query yields an empty result.
-    /// </summary>
+    /// <summary>Full-text search across indexed media items, optionally constrained to one library and paged by offset.</summary>
     Task<IReadOnlyList<SearchResult>> SearchAsync(
         string query,
         Guid? libraryId = null,
         int limit = 50,
+        int offset = 0,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Rebuilds the search index from the persisted media items (recovery/consistency
-    /// command; the index is otherwise kept in sync by database triggers). Returns the
-    /// number of indexed items.
-    /// </summary>
+    /// <summary>Rebuilds the search index from persisted media items.</summary>
     Task<int> ReindexAsync(CancellationToken cancellationToken = default);
 }

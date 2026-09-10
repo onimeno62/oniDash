@@ -10,33 +10,18 @@ using oniDash.Infrastructure.Persistence;
 
 namespace oniDash.Infrastructure.Search;
 
-/// <summary>
-/// SQLite FTS5-backed global search over media items. The virtual table
-/// MediaItemsFts (ItemId/LibraryId unindexed, DisplayName indexed) is maintained by
-/// AFTER INSERT/UPDATE/DELETE triggers on MediaItems, so the index is always live —
-/// scans, renames, and deletes (including bulk ExecuteDeleteAsync and cascades) are
-/// reflected without a separate indexing pass. ReindexAsync remains available as a
-/// recovery/consistency command.
-/// </summary>
+/// <summary>SQLite FTS5-backed global search with safe prefix matching, library filtering, and bounded pagination.</summary>
 public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchService
 {
     private const int MaxLimit = 200;
+    private const int MaxOffset = 10_000;
 
-    public async Task<IReadOnlyList<SearchResult>> SearchAsync(
-        string query,
-        Guid? libraryId = null,
-        int limit = 50,
-        CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, Guid? libraryId = null, int limit = 50, int offset = 0, CancellationToken cancellationToken = default)
     {
         var match = BuildMatchExpression(query);
-        if (match.Length == 0)
-        {
-            return [];
-        }
-
+        if (match.Length == 0) return [];
         var effectiveLimit = Math.Clamp(limit, 1, MaxLimit);
-
-        // bm25() returns lower-is-better relevance scores; ascending order = best first.
+        var effectiveOffset = Math.Clamp(offset, 0, MaxOffset);
         var sql = $"""
             SELECT i.Id AS ItemId, i.DisplayName AS DisplayName,
                    i.LibraryId AS LibraryId, l.Name AS LibraryName
@@ -46,63 +31,31 @@ public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchServic
             WHERE MediaItemsFts MATCH @match
             {(libraryId is null ? string.Empty : "AND i.LibraryId = @libraryId ")}
             ORDER BY bm25(MediaItemsFts), i.DisplayName
-            LIMIT @limit
+            LIMIT @limit OFFSET @offset
             """;
-
         var parameters = new List<SqliteParameter> { new("@match", match) };
-        if (libraryId is not null)
-        {
-            parameters.Add(new SqliteParameter("@libraryId", libraryId.Value));
-        }
+        if (libraryId is not null) parameters.Add(new SqliteParameter("@libraryId", libraryId.Value));
         parameters.Add(new SqliteParameter("@limit", effectiveLimit));
-
-        var rows = await dbContext.Database
-            .SqlQueryRaw<SearchRow>(sql, parameters.Cast<object>().ToArray())
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        return rows
-            .Select(row => new SearchResult(row.ItemId, row.DisplayName, row.LibraryId, row.LibraryName))
-            .ToList();
+        parameters.Add(new SqliteParameter("@offset", effectiveOffset));
+        var rows = await dbContext.Database.SqlQueryRaw<SearchRow>(sql, parameters.Cast<object>().ToArray()).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return rows.Select(row => new SearchResult(row.ItemId, row.DisplayName, row.LibraryId, row.LibraryName)).ToList();
     }
 
     public async Task<int> ReindexAsync(CancellationToken cancellationToken = default)
     {
-        await dbContext.Database
-            .ExecuteSqlRawAsync("DELETE FROM MediaItemsFts", cancellationToken)
-            .ConfigureAwait(false);
-        await dbContext.Database
-            .ExecuteSqlRawAsync(
-                "INSERT INTO MediaItemsFts(ItemId, LibraryId, DisplayName) SELECT Id, LibraryId, DisplayName FROM MediaItems",
-                cancellationToken)
-            .ConfigureAwait(false);
-
+        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM MediaItemsFts", cancellationToken).ConfigureAwait(false);
+        await dbContext.Database.ExecuteSqlRawAsync("INSERT INTO MediaItemsFts(ItemId, LibraryId, DisplayName) SELECT Id, LibraryId, DisplayName FROM MediaItems", cancellationToken).ConfigureAwait(false);
         await using var command = dbContext.Database.GetDbConnection().CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM MediaItemsFts";
-        if (command.Connection?.State != System.Data.ConnectionState.Open)
-        {
-            await command.Connection!.OpenAsync(cancellationToken).ConfigureAwait(false);
-        }
-
+        if (command.Connection?.State != System.Data.ConnectionState.Open) await command.Connection!.OpenAsync(cancellationToken).ConfigureAwait(false);
         var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return result is null ? 0 : Convert.ToInt32(result);
     }
 
-    /// <summary>
-    /// Turns user text into a safe FTS5 MATCH expression: each whitespace-separated term
-    /// becomes a quoted prefix term, combined with AND. Embedded double quotes are
-    /// escaped by doubling, so user input cannot break out of the expression.
-    /// </summary>
     internal static string BuildMatchExpression(string query)
     {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return string.Empty;
-        }
-
-        var terms = query
-            .Split((char[]?)null, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(term => $"\"{term.Replace("\"", "\"\"")}\"*");
+        if (string.IsNullOrWhiteSpace(query)) return string.Empty;
+        var terms = query.Split((char[]?)null, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(term => $"\"{term.Replace("\"", "\"\"")}\"*");
         return string.Join(" AND ", terms);
     }
 
