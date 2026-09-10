@@ -5,9 +5,11 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using oniDash.Application.Media;
 using oniDash.Application.Scanning;
 using oniDash.Movies.Cataloging;
 using oniDash.Movies.Endpoints;
+using oniDash.Movies.Metadata;
 using oniDash.Movies.Persistence;
 using oniDash.Movies.Probing;
 
@@ -27,6 +29,7 @@ public static class MovieServiceCollectionExtensions
         services.AddScoped<MovieCatalogService>();
         services.AddScoped<IVideoProbeReader, FfprobeVideoProbeReader>();
         services.AddScoped<IVideoArtworkReader, TagLibVideoArtworkReader>();
+        services.AddScoped<IMediaHandler, VideoMediaHandler>();
         services.AddScoped<MovieReindexService>();
         services.AddScoped<MoviesDatabaseInitializer>();
         services.AddScoped<IVideoFileLocator, VideoFileLocator>();

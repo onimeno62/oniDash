@@ -19,12 +19,12 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Scan jobs with progress/cancel/retry.
 - [x] Scan diagnostics and per-file failures.
 - [x] Scanner service behavior tests for indexing, reconciliation, progress, and handler isolation.
-- [ ] End-to-end scanner integration test against temporary SQLite + filesystem.
+- [x] End-to-end scanner integration test against temporary SQLite + filesystem.
 
 ## M2 — Metadata + artwork engine
 - [x] `IMediaHandler` contract.
 - [x] Audio metadata handler.
-- [ ] Video metadata handler.
+- [x] Video metadata handler.
 - [ ] EPUB/PDF/comic metadata handler.
 - [ ] Metadata normalization pipeline.
 - [x] Provenance/confidence model.
