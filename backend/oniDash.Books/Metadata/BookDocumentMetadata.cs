@@ -34,7 +34,7 @@ public sealed class LocalBookDocumentMetadataReader : IBookDocumentMetadataReade
         var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         Add(fields, "author", MetadataValue(doc, "creator")); Add(fields, "series", MetadataValue(doc, "belongs-to-collection")); Add(fields, "language", MetadataValue(doc, "language")); Add(fields, "publisher", MetadataValue(doc, "publisher")); Add(fields, "format", "epub");
         var coverId = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "meta" && string.Equals((string?)e.Attribute("name"), "cover", StringComparison.OrdinalIgnoreCase))?.Attribute("content")?.Value;
-        var coverHref = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "item" && (string)e.Attribute("id")! == coverId)?.Attribute("href")?.Value;
+        var coverHref = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "item" && string.Equals((string?)e.Attribute("id"), coverId, StringComparison.Ordinal))?.Attribute("href")?.Value;
         var coverEntry = coverHref is null ? null : archive.GetEntry(ResolveArchivePath(rootFile!, coverHref));
         var artwork = coverEntry is null ? Array.Empty<ArtworkCandidate>() : [new ArtworkCandidate("thumbnail", "embedded:" + coverEntry.FullName, MimeTypeFor(coverEntry.FullName), coverEntry.Length)];
         return new BookDocumentMetadata(MetadataValue(doc, "title") ?? Path.GetFileNameWithoutExtension(path), fields, null, artwork);
