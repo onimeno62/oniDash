@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using oniDash.Application.Catalogue;
 using oniDash.Application.Health;
 using oniDash.Application.Jobs;
 using oniDash.Application.Libraries;
