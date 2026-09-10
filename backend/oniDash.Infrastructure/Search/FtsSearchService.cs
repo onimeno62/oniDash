@@ -23,10 +23,14 @@ public sealed class FtsSearchService(OniDashDbContext dbContext) : ISearchServic
         if (match.Length == 0) return [];
         var effectiveLimit = Math.Clamp(limit, 1, MaxLimit);
         var effectiveOffset = Math.Clamp(offset, 0, MaxOffset);
-        var mediaFilter = mediaType is null ? string.Empty : "AND EXISTS (SELECT 1 FROM MediaFiles mf JOIN LibrarySources ls ON ls.Id = mf.LibrarySourceId WHERE mf.MediaItemId = i.Id AND ls.LibraryId = i.LibraryId AND mf.Extension IN (@extensions))";
+        var extensions = mediaType is null ? Array.Empty<string>() : ExtensionsFor(mediaType.Value).ToArray();
+        var extensionPlaceholders = string.Join(",", extensions.Select((_, index) => $"@extension{index}"));
+        var mediaFilter = extensions.Length == 0
+            ? mediaType is null ? string.Empty : "AND 1 = 0"
+            : $"AND EXISTS (SELECT 1 FROM MediaFiles mf JOIN LibrarySources ls ON ls.Id = mf.LibrarySourceId WHERE mf.MediaItemId = i.Id AND ls.LibraryId = i.LibraryId AND LOWER(mf.Extension) IN ({extensionPlaceholders}))";
         var parameters = new List<SqliteParameter> { new("@match", match) };
         if (libraryId is not null) parameters.Add(new SqliteParameter("@libraryId", libraryId.Value));
-        if (mediaType is not null) parameters.Add(new SqliteParameter("@extensions", string.Join(',', ExtensionsFor(mediaType.Value))));
+        for (var index = 0; index < extensions.Length; index++) parameters.Add(new SqliteParameter($"@extension{index}", extensions[index]));
         parameters.Add(new SqliteParameter("@limit", effectiveLimit));
         parameters.Add(new SqliteParameter("@offset", effectiveOffset));
         var sql = $"""
