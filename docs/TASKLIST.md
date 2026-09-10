@@ -50,7 +50,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Library health and duplicate tooling.
 - [ ] ReplayGain/loudness metadata where supported.
 - [ ] Gapless/crossfade where technically supported.
-- [ ] Media-key/Windows playback integration boundary.
+- [x] Media-key/Windows playback integration boundary.
 - [x] Complete lyrics/provider error handling.
 
 ## M5 — Movies + TV/Anime
