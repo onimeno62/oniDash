@@ -1,4 +1,6 @@
-using System.Globalization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using oniDash.Core.Domain;
 
 namespace oniDash.Application.Media;
@@ -26,7 +28,12 @@ public sealed class MediaMetadataNormalizer : IMediaMetadataNormalizer
         var artwork = inspection.Artwork
             .Where(candidate => !string.IsNullOrWhiteSpace(candidate.Source)
                 && !string.IsNullOrWhiteSpace(candidate.MimeType))
-            .Select(candidate => candidate with { Kind = NormalizeValue(candidate.Kind) ?? "thumbnail", Source = NormalizeValue(candidate.Source)!, MimeType = candidate.MimeType.Trim().ToLowerInvariant() })
+            .Select(candidate => candidate with
+            {
+                Kind = NormalizeValue(candidate.Kind) ?? "thumbnail",
+                Source = NormalizeValue(candidate.Source)!,
+                MimeType = candidate.MimeType.Trim().ToLowerInvariant()
+            })
             .ToArray();
 
         return inspection with
@@ -43,8 +50,12 @@ public sealed class MediaMetadataNormalizer : IMediaMetadataNormalizer
 
     private static string NormalizeKey(string value) =>
         string.Concat((value ?? string.Empty).Trim().Select((character, index) =>
-            char.IsLetterOrDigit(character) ? (index == 0 ? char.ToLowerInvariant(character).ToString() : character.ToString()) : ""));
+            char.IsLetterOrDigit(character)
+                ? (index == 0 ? char.ToLowerInvariant(character).ToString() : character.ToString())
+                : string.Empty));
 
     private static string? NormalizeValue(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : string.Join(' ', value.Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : string.Join(' ', value.Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 }
