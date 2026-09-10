@@ -26,7 +26,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Audio metadata handler.
 - [x] Video metadata handler.
 - [x] EPUB/PDF/comic metadata handler.
-- [ ] Metadata normalization pipeline.
+- [x] Metadata normalization pipeline.
 - [x] Provenance/confidence model.
 - [ ] Embedded artwork extraction.
 - [x] Artwork cache and lifecycle contract.
