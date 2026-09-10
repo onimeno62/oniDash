@@ -76,6 +76,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 ## M7 — Books platform
 - [ ] Align Books with scanner/indexer.
 - [ ] EPUB/PDF metadata and cover extraction.
+- [ ] Author/series model.
 - [ ] Reading progress and bookmarks.
 - [ ] EPUB/PDF reader.
 - [ ] Search/filter/sort parity.

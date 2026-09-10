@@ -24,10 +24,12 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = ResolveConnectionString(configuration);
+
         services.AddDbContext<OniDashDbContext>(options => options.UseSqlite(connectionString));
         services.AddScoped<IDatabaseHealthProbe, SqliteDatabaseHealthProbe>();
         services.AddScoped<IDatabaseInitializer, DatabaseInitializer>();
         services.AddScoped<ILibraryHealthProbe, SqliteLibraryHealthProbe>();
+
         services.AddSingleton<IFileSystemProbe, FileSystemProbe>();
         services.AddScoped<ILibraryRepository, LibraryRepository>();
         services.AddScoped<ILibrarySourceRepository, LibrarySourceRepository>();
@@ -39,16 +41,40 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IMediaTypeDetector, MediaTypeDetector>();
         services.AddSingleton<MediaHandlerRegistry>();
         services.AddScoped<ISearchService, FtsSearchService>();
+
         return services;
     }
 
+    /// <summary>
+    /// Local-first default: <c>%LOCALAPPDATA%/oniDash/onidash.db</c>. An explicit
+    /// <c>ConnectionStrings:OniDash</c> or <c>OniDash:DataDirectory</c> overrides it, which is
+    /// how tests isolate their database.
+    /// </summary>
     private static string ResolveConnectionString(IConfiguration configuration)
     {
         var configured = configuration.GetConnectionString(ConnectionStringName);
-        if (!string.IsNullOrWhiteSpace(configured)) return configured;
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
         var dataDirectory = configuration["OniDash:DataDirectory"];
-        var directory = string.IsNullOrWhiteSpace(dataDirectory) ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "oniDash") : dataDirectory;
+        var directory = string.IsNullOrWhiteSpace(dataDirectory)
+            ? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "oniDash")
+            : dataDirectory;
+
         Directory.CreateDirectory(directory);
-        return new SqliteConnectionStringBuilder { DataSource = Path.Combine(directory, "onidash.db"), Mode = SqliteOpenMode.ReadWriteCreate, Pooling = true, ForeignKeys = true }.ToString();
+
+        return new SqliteConnectionStringBuilder
+        {
+            DataSource = Path.Combine(directory, "onidash.db"),
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = true,
+            // The model declares ON DELETE CASCADE relationships; SQLite only enforces
+            // foreign keys when asked, so cascade deletes and integrity checks actually work.
+            ForeignKeys = true,
+        }.ToString();
     }
 }
