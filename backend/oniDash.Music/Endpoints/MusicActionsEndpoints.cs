@@ -56,7 +56,8 @@ public static class MusicActionsEndpoints
             if (location is null) return Results.NotFound();
             var path = Path.ChangeExtension(location.AbsolutePath, ".lrc");
             if (!File.Exists(path)) return Results.NotFound();
-            return Results.Ok(new { text = await File.ReadAllTextAsync(path, ct), synchronized = HasLrcTimestamps(await File.ReadAllTextAsync(path, ct)) });
+            var text = await File.ReadAllTextAsync(path, ct);
+            return Results.Ok(new { text, synchronized = HasLrcTimestamps(text) });
         });
 
         music.MapGet("/tracks/{trackId:guid}/info", async (MusicDbContext db, IMediaFileLocator locator, Guid trackId, CancellationToken ct) =>

@@ -45,7 +45,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Missing files / missing artwork / metadata errors / duplicates diagnostics.
 
 ## M4 — Music completion
-- [ ] Verify existing Music APIs against canonical platform contracts.
+- [x] Verify existing Music APIs against canonical platform contracts.
 - [ ] Fix remaining type/build issues.
 - [ ] Library health and duplicate tooling.
 - [ ] ReplayGain/loudness metadata where supported.
