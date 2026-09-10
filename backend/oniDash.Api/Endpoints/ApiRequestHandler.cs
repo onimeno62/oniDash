@@ -38,6 +38,24 @@ public static class ApiRequestHandler
         int statusCode,
         string code,
         string message,
-        IReadOnlyDictionary<string, string[]>? details = null) =>
-        Results.Json(new ApiError(code, message, null, details), statusCode: statusCode);
+        IReadOnlyDictionary<string, string[]>? details = null)
+    {
+        // RFC 7807 problem+json on the wire, with the canonical application-level code as an
+        // extension member. The typed frontend client (api/client.ts) and legacy consumers
+        // read title/detail/errors; new clients can classify via "code".
+        var extensions = new Dictionary<string, object?> { ["code"] = code };
+        if (details is { Count: > 0 }) extensions["errors"] = details;
+        return Results.Problem(statusCode: statusCode, title: ReasonPhrase(statusCode), detail: message, extensions: extensions);
+    }
+
+    private static string ReasonPhrase(int statusCode) => statusCode switch
+    {
+        StatusCodes.Status400BadRequest => "Bad Request",
+        StatusCodes.Status401Unauthorized => "Unauthorized",
+        StatusCodes.Status403Forbidden => "Forbidden",
+        StatusCodes.Status404NotFound => "Not found",
+        StatusCodes.Status409Conflict => "Conflict",
+        StatusCodes.Status500InternalServerError => "Internal Server Error",
+        _ => "Error"
+    };
 }

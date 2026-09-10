@@ -5,7 +5,7 @@ import { PlayIcon } from './icons';
 import { MusicNowPlaying } from './MusicNowPlaying';
 
 export function MusicPlayerBar() {
-  const { current, playing, position, duration, queue, repeatMode, shuffle, toggle, next, previous, seek, setShuffle, cycleRepeat, stop, clearQueue } = usePlayer();
+  const { current, playing, position, duration, queue, repeatMode, shuffle, toggle, next, previous, seek, setShuffle, cycleRepeat, stop } = usePlayer();
   const [expanded, setExpanded] = useState(false);
   if (!current) return null;
   return <>

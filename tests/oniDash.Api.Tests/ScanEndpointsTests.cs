@@ -26,7 +26,8 @@ public sealed class ScanEndpointsTests(OniDashApiFactory factory) : IClassFixtur
             var body = await ReadJson(response);
 
             Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-            Assert.Equal("/api/scans/" + body.GetProperty("scanId").GetString(), response.Headers.Location?.ToString());
+            // Scans surface through the canonical job status endpoints.
+            Assert.Equal("/api/jobs/" + body.GetProperty("scanId").GetString(), response.Headers.Location?.ToString());
             Assert.Equal("Running", body.GetProperty("status").GetString());
             Assert.True(body.TryGetProperty("filesDiscovered", out _));
 

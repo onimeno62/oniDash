@@ -70,7 +70,7 @@ public sealed class ScanServiceTests
 
     private static ScanService Create(LibrarySource source, IReadOnlyList<DiscoveredFile> discovered,
         InMemoryFileRepository files, InMemoryItemRepository items, params IIndexedMediaHandler[] handlers)
-        => new(new InMemorySourceRepository(source), files, new FakeEnumerator(discovered), items, handlers);
+        => new(new InMemorySourceRepository(source), files, new FakeEnumerator(discovered), new PlaceholderMediaItemResolver(items), handlers);
 
     private sealed class FakeEnumerator(IReadOnlyList<DiscoveredFile> files) : IFileEnumerator
     {
@@ -117,7 +117,7 @@ public sealed class ScanServiceTests
             => Task.FromResult<(IReadOnlyList<MediaItem>, int)>(([], 0));
         public Task<MediaItem?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<MediaItem?>(null);
         public Task<MediaItem> AddPlaceholderAsync(Guid libraryId, string displayName, CancellationToken cancellationToken = default)
-        { var item = new MediaItem { LibraryId = libraryId, Title = displayName }; return Task.FromResult(item); }
+        { var item = new MediaItem { LibraryId = libraryId, DisplayName = displayName }; return Task.FromResult(item); }
     }
 
     private sealed class ThrowingHandler : IIndexedMediaHandler

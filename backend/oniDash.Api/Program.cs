@@ -50,6 +50,12 @@ app.MapMangaEndpoints();
 // prevents HTML from masquerading as a successful API response.
 var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 var spaIndex = Path.Combine(webRoot, "index.html");
+app.Map("/api/{**path}", (HttpContext context) =>
+{
+    context.Response.StatusCode = StatusCodes.Status404NotFound;
+    context.Response.ContentType = "application/json";
+    return context.Response.WriteAsJsonAsync(new { code = "not_found", message = $"No API endpoint matches '{context.Request.Path}'." });
+});
 if (File.Exists(spaIndex))
 {
     app.UseDefaultFiles();

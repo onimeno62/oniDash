@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using oniDash.Application.Media;
 using oniDash.Application.Scanning;
 using oniDash.Music.Cataloging;
 using oniDash.Music.Endpoints;
