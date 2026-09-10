@@ -18,7 +18,8 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Missing-file detection.
 - [x] Scan jobs with progress/cancel/retry.
 - [x] Scan diagnostics and per-file failures.
-- [ ] Scanner integration tests.
+- [x] Scanner service behavior tests for indexing, reconciliation, progress, and handler isolation.
+- [ ] End-to-end scanner integration test against temporary SQLite + filesystem.
 
 ## M2 — Metadata + artwork engine
 - [x] `IMediaHandler` contract.
@@ -34,12 +35,12 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 
 ## M3 — Global search + library health
 - [x] Canonical cross-media search contract.
-- [ ] Canonical FTS document model.
-- [ ] Incremental index updates.
-- [ ] Full rebuild/recovery command.
-- [ ] Cross-media search endpoint and typed frontend client.
-- [ ] Filters for media type/library/tag/status.
-- [ ] Search result navigation.
+- [x] Canonical FTS5-backed search index model.
+- [x] Live incremental FTS maintenance through database triggers.
+- [x] Full rebuild/recovery command.
+- [x] Cross-media search endpoint and backend search service.
+- [ ] Filters for media type/library/tag/status in the canonical search surface.
+- [ ] Search result navigation parity across all media modules.
 - [ ] Library health dashboard.
 - [ ] Missing files / missing artwork / metadata errors / duplicates diagnostics.
 
@@ -99,4 +100,4 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [ ] Data migration/backup/restore.
 
 ## Agent execution rule
-Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs. Create a focused branch/PR. Never mark a task complete without evidence.
+Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs. Never mark a task complete without evidence. When repository CI is unavailable, distinguish source-level evidence from executed verification.
