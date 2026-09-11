@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-  <PropertyGroup><RootNamespace>oniDash.Api</RootNamespace><AssemblyName>oniDash.Api</AssemblyName><Version>0.6.0</Version></PropertyGroup>
+  <PropertyGroup><RootNamespace>oniDash.Api</RootNamespace><AssemblyName>oniDash.Api</AssemblyName><Version>0.7.0</Version></PropertyGroup>
   <ItemGroup><PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0"><PrivateAssets>all</PrivateAssets><IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets></PackageReference></ItemGroup>
-  <ItemGroup><ProjectReference Include="..\oniDash.Application\oniDash.Application.csproj" /><ProjectReference Include="..\oniDash.Infrastructure\oniDash.Infrastructure.csproj" /><ProjectReference Include="..\oniDash.Music\oniDash.Music.csproj" /><ProjectReference Include="..\oniDash.Movies\oniDash.Movies.csproj" /><ProjectReference Include="..\oniDash.Books\oniDash.Books.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\oniDash.Application\oniDash.Application.csproj" /><ProjectReference Include="..\oniDash.Infrastructure\oniDash.Infrastructure.csproj" /><ProjectReference Include="..\oniDash.Music\oniDash.Music.csproj" /><ProjectReference Include="..\oniDash.Movies\oniDash.Movies.csproj" /><ProjectReference Include="..\oniDash.Books\oniDash.Books.csproj" /><ProjectReference Include="..\oniDash.Manga\oniDash.Manga.csproj" /></ItemGroup>
 </Project>
