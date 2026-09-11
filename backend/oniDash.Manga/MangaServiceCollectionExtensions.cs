@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,13 +17,10 @@ public static class MangaServiceCollectionExtensions
         Directory.CreateDirectory(directory);
         var connection = string.IsNullOrWhiteSpace(configured) ? new SqliteConnectionStringBuilder { DataSource = Path.Combine(directory, "onidash.db"), ForeignKeys = true }.ToString() : configured;
         services.AddDbContext<MangaDbContext>(options => options.UseSqlite(connection));
-        services.AddScoped<MangaDatabaseInitializer>();
-        services.AddScoped<IMangaSourceAdapter, LocalMangaSource>();
-        services.AddScoped<IMangaChapterSource>(x => x.GetRequiredService<IMangaSourceAdapter>());
-        services.AddScoped<IMediaPluginManager, MangaPluginManager>();
-        services.AddScoped<IMangaChapterCatalogue, MangaChapterCatalogue>();
-        services.AddScoped<IMangaBookmarkStore, MangaBookmarkStore>();
-        services.AddScoped<IMangaDownloadQueue, MangaDownloadQueue>();
+        services.AddScoped<MangaDatabaseInitializer>(); services.AddScoped<IMangaSourceAdapter, LocalMangaSource>(); services.AddScoped<IMangaChapterSource>(x => x.GetRequiredService<IMangaSourceAdapter>());
+        services.AddScoped<IMangaPluginManager, MangaPluginManager>(); services.AddScoped<IMediaPluginManager>(x => x.GetRequiredService<IMangaPluginManager>());
+        services.AddScoped<IMangaChapterCatalogue, MangaChapterCatalogue>(); services.AddScoped<IMangaBookmarkStore, MangaBookmarkStore>();
+        services.AddScoped<MangaDownloadQueue>(); services.AddScoped<IMangaDownloadQueue>(x => x.GetRequiredService<MangaDownloadQueue>()); services.AddScoped<IMangaDownloadProcessor>(x => x.GetRequiredService<MangaDownloadQueue>());
         services.AddScoped<IMediaReader, MangaReader>();
         return services;
     }
