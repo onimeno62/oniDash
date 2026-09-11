@@ -3,7 +3,6 @@ using System.Linq;
 
 namespace oniDash.Music.Tagging;
 
-/// <summary>Embedded metadata extracted from one audio file. Nulls mean "tag absent".</summary>
 public sealed record AudioTags(
     string? Title,
     string? TrackArtist,
@@ -15,15 +14,17 @@ public sealed record AudioTags(
     double? DurationSeconds,
     string? Genre,
     byte[]? CoverBytes,
-    string? CoverContentType);
+    string? CoverContentType,
+    double? ReplayGainTrackGainDb = null,
+    double? ReplayGainTrackPeak = null,
+    double? ReplayGainAlbumGainDb = null,
+    double? ReplayGainAlbumPeak = null);
 
-/// <summary>Reads embedded tags from one audio file; null when unreadable/unsupported.</summary>
 public interface IAudioTagReader
 {
     AudioTags? Read(string absolutePath);
 }
 
-/// <summary>TagLib#-based tag reading. Strictly read-only.</summary>
 public sealed class TagLibAudioTagReader : IAudioTagReader
 {
     public AudioTags? Read(string absolutePath)
@@ -33,15 +34,14 @@ public sealed class TagLibAudioTagReader : IAudioTagReader
             using var file = TagLib.File.Create(absolutePath);
             var tag = file.Tag;
             var properties = file.Properties;
-            var cover = tag.Pictures?
-                .Where(p => p.Data is { Count: > 0 })
-                .OrderBy(p => p.Type == TagLib.PictureType.FrontCover ? 0 : 1)
-                .FirstOrDefault();
+            var cover = tag.Pictures?.Where(p => p.Data is { Count: > 0 }).OrderBy(p => p.Type == TagLib.PictureType.FrontCover ? 0 : 1).FirstOrDefault();
             return new AudioTags(
                 NullIfEmpty(tag.Title), NullIfEmpty(tag.FirstPerformer), NullIfEmpty(tag.FirstAlbumArtist), NullIfEmpty(tag.Album),
                 tag.Track > 0 ? (int)tag.Track : null, tag.Disc > 0 ? (int)tag.Disc : null, tag.Year > 0 ? (int)tag.Year : null,
                 properties is null ? null : properties.Duration.TotalSeconds, NullIfEmpty(tag.FirstGenre), cover?.Data?.Data,
-                string.IsNullOrWhiteSpace(cover?.MimeType) ? null : cover!.MimeType);
+                string.IsNullOrWhiteSpace(cover?.MimeType) ? null : cover!.MimeType,
+                FiniteOrNull(tag.ReplayGainTrackGain), FinitePositiveOrNull(tag.ReplayGainTrackPeak),
+                FiniteOrNull(tag.ReplayGainAlbumGain), FinitePositiveOrNull(tag.ReplayGainAlbumPeak));
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
         {
@@ -50,4 +50,6 @@ public sealed class TagLibAudioTagReader : IAudioTagReader
     }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static double? FiniteOrNull(double value) => double.IsFinite(value) ? value : null;
+    private static double? FinitePositiveOrNull(double value) => double.IsFinite(value) && value > 0 ? value : null;
 }
