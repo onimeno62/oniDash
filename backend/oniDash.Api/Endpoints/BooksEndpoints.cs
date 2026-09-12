@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using oniDash.Application.Common;
 using oniDash.Books.Reader;
 using oniDash.Core.Domain;
 using oniDash.Infrastructure.Persistence;
@@ -13,6 +14,19 @@ namespace oniDash.Api.Endpoints;
 public static class BooksEndpoints
 {
     private static readonly HashSet<string> BookExtensions = new(StringComparer.OrdinalIgnoreCase) { ".epub", ".epub3", ".pdf", ".mobi", ".azw", ".azw3", ".fb2", ".cbz", ".cbr", ".cb7" };
+
+    /// <summary>
+    /// Resolves an indexed file row to an absolute path (source root + scanner-relative
+    /// path, re-validated to stay inside the root). MediaFile rows carry only relative
+    /// paths; the source root lookup is what keeps this path-safe.
+    /// </summary>
+    private static async Task<string?> ResolveAbsolutePathAsync(OniDashDbContext db, MediaFile file, CancellationToken ct)
+    {
+        var source = await db.Sources.AsNoTracking().SingleOrDefaultAsync(s => s.Id == file.LibrarySourceId, ct).ConfigureAwait(false);
+        return source is null
+            ? null
+            : PathSafety.TryResolveChildPath(source.RootPath, file.RelativePath, out var absolutePath) ? absolutePath : null;
+    }
 
     public static IEndpointRouteBuilder MapBooksEndpoints(this IEndpointRouteBuilder app)
     {
@@ -79,7 +93,14 @@ public static class BooksEndpoints
 
             var totalBooks = items.Count;
             var missingCovers = items.Count(x => !x.Artwork.Any());
-            var missingFiles = items.Count(x => x.Files.Any(f => f.MissingSinceUtc != null || (!string.IsNullOrWhiteSpace(f.AbsolutePath) && !File.Exists(f.AbsolutePath))));
+            var sourceRoots = await db.Sources.AsNoTracking().ToDictionaryAsync(s => s.Id, s => s.RootPath, ct);
+            bool IsMissing(MediaFile f)
+            {
+                if (f.MissingSinceUtc != null) return true;
+                if (!sourceRoots.TryGetValue(f.LibrarySourceId, out var root) || !PathSafety.TryResolveChildPath(root, f.RelativePath, out var absolutePath)) return true;
+                return !File.Exists(absolutePath);
+            }
+            var missingFiles = items.Sum(x => x.Files.Count(IsMissing));
             var missingMetadata = items.Count(x =>
             {
                 var s = states.GetValueOrDefault(x.Id);
@@ -115,24 +136,27 @@ public static class BooksEndpoints
         books.MapGet("/{id:guid}/manifest", async (OniDashDbContext db, IBookReaderService reader, Guid id, CancellationToken ct) =>
         {
             var file = await db.MediaItems.AsNoTracking().Where(x => x.Id == id).SelectMany(x => x.Files).OrderBy(x => x.RelativePath.Length).FirstOrDefaultAsync(ct);
-            if (file is null || string.IsNullOrWhiteSpace(file.AbsolutePath) || !File.Exists(file.AbsolutePath)) return Results.NotFound();
-            var manifest = await reader.GetManifestAsync(file.AbsolutePath, ct);
+            var absolutePath = file is null ? null : await ResolveAbsolutePathAsync(db, file, ct);
+            if (absolutePath is null || !File.Exists(absolutePath)) return Results.NotFound();
+            var manifest = await reader.GetManifestAsync(absolutePath, ct);
             return Results.Ok(manifest);
         });
 
         books.MapGet("/{id:guid}/pages/{pageNumber:int}", async (OniDashDbContext db, IBookReaderService reader, Guid id, int pageNumber, CancellationToken ct) =>
         {
             var file = await db.MediaItems.AsNoTracking().Where(x => x.Id == id).SelectMany(x => x.Files).OrderBy(x => x.RelativePath.Length).FirstOrDefaultAsync(ct);
-            if (file is null || string.IsNullOrWhiteSpace(file.AbsolutePath) || !File.Exists(file.AbsolutePath)) return Results.NotFound();
-            var page = await reader.GetPageAsync(file.AbsolutePath, pageNumber, ct);
+            var absolutePath = file is null ? null : await ResolveAbsolutePathAsync(db, file, ct);
+            if (absolutePath is null || !File.Exists(absolutePath)) return Results.NotFound();
+            var page = await reader.GetPageAsync(absolutePath, pageNumber, ct);
             return page is null ? Results.NotFound() : Results.File(page.Data, page.ContentType);
         });
 
         books.MapGet("/{id:guid}/stream", async (OniDashDbContext db, Guid id, CancellationToken ct) =>
         {
             var file = await db.MediaItems.AsNoTracking().Where(x => x.Id == id).SelectMany(x => x.Files).OrderBy(x => x.RelativePath.Length).FirstOrDefaultAsync(ct);
-            if (file is null || string.IsNullOrWhiteSpace(file.AbsolutePath) || !File.Exists(file.AbsolutePath)) return Results.NotFound();
-            return Results.File(file.AbsolutePath, GetMimeType(file.AbsolutePath), enableRangeProcessing: true);
+            var absolutePath = file is null ? null : await ResolveAbsolutePathAsync(db, file, ct);
+            if (absolutePath is null || !File.Exists(absolutePath)) return Results.NotFound();
+            return Results.File(absolutePath, GetMimeType(absolutePath), enableRangeProcessing: true);
         });
 
         // Bookmarks

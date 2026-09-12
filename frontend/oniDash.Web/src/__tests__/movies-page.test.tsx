@@ -1,4 +1,4 @@
-﻿import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderApp } from './test-utils';
 
@@ -48,12 +48,8 @@ describe('MoviesPage', () => {
     apiMocks.setMovieWatched.mockResolvedValue({});
   });
 
-  beforeAll(() => {
-    // jsdom does not implement media playback.
-    window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
-    window.HTMLMediaElement.prototype.pause = vi.fn();
-    window.HTMLMediaElement.prototype.load = vi.fn();
-  });
+  // Media playback is stubbed globally in vitest.setup.ts; vi.fn() stubs here would be
+  // neutered by the beforeEach vi.resetAllMocks() above.
 
   it('shows the empty state when the library has no movies', async () => {
     renderApp('/movies');

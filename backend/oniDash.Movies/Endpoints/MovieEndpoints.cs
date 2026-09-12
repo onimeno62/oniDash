@@ -31,7 +31,10 @@ public static class MovieEndpoints
         {
             var query = db.Movies.AsNoTracking().Where(x => !x.Watched && x.WatchProgressSeconds > 0);
             if (libraryId is not null) query = query.Where(x => x.LibraryId == libraryId);
-            return Results.Ok(await query.OrderByDescending(x => x.UpdatedAtUtc).Take(20).Select(x => new MovieSummary(x.Id, x.MediaItemId, x.Title, x.Year, x.DurationSeconds, x.Container, x.PosterBlob != null, x.Watched, x.WatchProgressSeconds, x.WatchedAtUtc)).ToListAsync(ct));
+            // SQLite cannot ORDER BY DateTimeOffset; the unwatched-with-progress set is bounded.
+            var rows = await query.ToListAsync(ct);
+            return Results.Ok(rows.OrderByDescending(x => x.UpdatedAtUtc).Take(20)
+                .Select(x => new MovieSummary(x.Id, x.MediaItemId, x.Title, x.Year, x.DurationSeconds, x.Container, x.PosterBlob != null, x.Watched, x.WatchProgressSeconds, x.WatchedAtUtc)).ToList());
         });
         movies.MapGet("/{movieId:guid}/poster", async (MoviesDbContext db, Guid movieId, CancellationToken ct) => { var movie = await db.Movies.AsNoTracking().SingleOrDefaultAsync(x => x.Id == movieId, ct); return movie?.PosterBlob is { Length: > 0 } blob ? Results.File(blob, movie.PosterContentType ?? "image/jpeg") : Results.NotFound(); });
         movies.MapGet("/{movieId:guid}/stream", async (MoviesDbContext db, IVideoFileLocator locator, Guid movieId, CancellationToken ct) => { var movie = await db.Movies.AsNoTracking().SingleOrDefaultAsync(x => x.Id == movieId, ct); if (movie is null) return Results.NotFound(); var file = await locator.LocateAsync(movie.FileId, ct); return file is null ? Results.NotFound() : Results.File(file.AbsolutePath, file.ContentType, enableRangeProcessing: true); });

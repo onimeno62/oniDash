@@ -6,7 +6,9 @@ const apiMocks = vi.hoisted(() => ({ fetchLibraries: vi.fn(), fetchMusicArtists:
 vi.mock('../api/libraries', async (importOriginal) => ({ ...(await importOriginal<typeof import('../api/libraries')>()), fetchLibraries: apiMocks.fetchLibraries }));
 vi.mock('../api/music', async (importOriginal) => ({ ...(await importOriginal<typeof import('../api/music')>()), ...apiMocks }));
 const musicLibrary = { id: 'lib-1', name: 'Music', createdAtUtc: '2026-01-15T10:00:00Z' };
-beforeAll(() => { window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined); window.HTMLMediaElement.prototype.pause = vi.fn(); window.HTMLMediaElement.prototype.load = vi.fn(); });
+// Media playback is stubbed globally in vitest.setup.ts. Do not re-stub it with vi.fn()
+// here: the beforeEach vi.resetAllMocks() below neuters such mocks, so play() would return
+// undefined and the player's `play().catch(...)` chain would throw an unhandled TypeError.
 const artist = { id: 'artist-1', name: 'Kavinsky' };
 const album = { id: 'album-1', title: 'OutRun', artistName: 'Kavinsky', year: 2013, hasCover: false };
 function track(overrides: Partial<{ id: string; title: string; artistName: string; albumTitle: string; albumId: string }> = {}) { const { id = 'track-1', title = 'Nightcall', artistName = 'Kavinsky', albumTitle = 'OutRun', albumId = 'album-1' } = overrides; return { id, mediaItemId: `item-${id}`, title, artistName, albumTitle, albumId, hasCover: false, trackNumber: 1, discNumber: null, year: 2013, durationSeconds: 258.4, genre: 'Synthwave', rating: 0 }; }

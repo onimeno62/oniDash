@@ -32,7 +32,7 @@ builder.Services.AddApplication();
 builder.Services.AddCatalogueContracts();
 builder.Services.AddMusic(builder.Configuration);
 builder.Services.AddMovies(builder.Configuration);
-builder.Services.AddBooks();
+builder.Services.AddBooksServices();
 builder.Services.AddManga(builder.Configuration);
 
 builder.Services.AddSingleton<IAppVersionProvider, AssemblyAppVersionProvider>();

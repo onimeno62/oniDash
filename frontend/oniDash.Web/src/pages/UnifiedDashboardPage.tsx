@@ -6,9 +6,8 @@ import {
   fetchFavorites,
   fetchActivityTimeline,
   fetchLocalRecommendations,
-  DashboardMediaItem,
-  DashboardActivity,
 } from '../api/dashboard';
+import type { DashboardMediaItem, DashboardActivity } from '../api/dashboard';
 import { LoadingState } from '../components/states/LoadingState';
 import { EmptyState } from '../components/states/EmptyState';
 

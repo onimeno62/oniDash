@@ -34,7 +34,13 @@ public sealed class LocalMangaSource(MangaDbContext db) : IMangaSourceAdapter
     public string Id => "local";
     public async Task<IReadOnlyList<string>> SearchAsync(string query, CancellationToken ct = default) => await db.Titles.AsNoTracking().Where(x => x.Title.Contains(query)).OrderBy(x => x.Title).Select(x => x.Title).Take(100).ToListAsync(ct);
     public async Task<IReadOnlyList<string>> PopularAsync(CancellationToken ct = default) => await db.Titles.AsNoTracking().OrderByDescending(x => x.Favorite).ThenBy(x => x.Title).Select(x => x.Title).Take(50).ToListAsync(ct);
-    public async Task<IReadOnlyList<string>> LatestAsync(CancellationToken ct = default) => await db.Titles.AsNoTracking().OrderByDescending(x => x.UpdatedAtUtc).Select(x => x.Title).Take(50).ToListAsync(ct);
+    public async Task<IReadOnlyList<string>> LatestAsync(CancellationToken ct = default)
+    {
+        // SQLite cannot ORDER BY DateTimeOffset; the local catalogue is bounded, so the
+        // newest-first cut happens in memory (same pattern as the music plugin).
+        var titles = await db.Titles.AsNoTracking().ToListAsync(ct);
+        return titles.OrderByDescending(x => x.UpdatedAtUtc).Select(x => x.Title).Take(50).ToList();
+    }
     public async Task<Stream?> OpenChapterAsync(string chapterId, CancellationToken ct = default) { if (!Guid.TryParse(chapterId, out var id)) return null; var path = await db.Chapters.AsNoTracking().Where(x => x.Id == id).Select(x => x.LocalPath).SingleOrDefaultAsync(ct); return path is not null && File.Exists(path) ? File.OpenRead(path) : null; }
 }
 
@@ -65,8 +71,13 @@ public sealed class MangaDownloadQueue(MangaDbContext db) : IMangaDownloadQueue,
 {
     private readonly string _root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "oniDash", "manga-offline");
     public async Task EnqueueAsync(IReadOnlyCollection<string> chapterIds, CancellationToken ct = default) { var now = DateTimeOffset.UtcNow; foreach (var value in chapterIds) if (Guid.TryParse(value, out var id) && await db.Chapters.AnyAsync(x => x.Id == id, ct) && !await db.Downloads.AnyAsync(x => x.ChapterId == id && (x.State == "Pending" || x.State == "Complete"), ct)) db.Downloads.Add(new MangaDownload { Id = Guid.NewGuid(), ChapterId = id, CreatedAtUtc = now, UpdatedAtUtc = now }); await db.SaveChangesAsync(ct); }
-    public async Task<IReadOnlyList<string>> ListPendingAsync(CancellationToken ct = default) => await db.Downloads.AsNoTracking().Where(x => x.State == "Pending").OrderBy(x => x.CreatedAtUtc).Select(x => x.ChapterId.ToString()).ToListAsync(ct);
-    public async Task<int> ProcessPendingAsync(CancellationToken ct = default) { Directory.CreateDirectory(_root); var rows = await db.Downloads.Where(x => x.State == "Pending").OrderBy(x => x.CreatedAtUtc).ToListAsync(ct); var completed = 0; foreach (var row in rows) { var chapter = await db.Chapters.SingleAsync(x => x.Id == row.ChapterId, ct); try { if (chapter.LocalPath is null || !File.Exists(chapter.LocalPath)) throw new FileNotFoundException("Chapter source is unavailable."); var destination = Path.Combine(_root, row.ChapterId + Path.GetExtension(chapter.LocalPath)); File.Copy(chapter.LocalPath, destination, true); chapter.LocalPath = destination; row.DestinationPath = destination; row.State = "Complete"; row.Error = null; completed++; } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { row.State = "Failed"; row.Error = ex.Message; } row.UpdatedAtUtc = DateTimeOffset.UtcNow; } await db.SaveChangesAsync(ct); return completed; }
+    public async Task<IReadOnlyList<string>> ListPendingAsync(CancellationToken ct = default)
+    {
+        // SQLite cannot ORDER BY DateTimeOffset; pending downloads stay a small set.
+        var rows = await db.Downloads.AsNoTracking().Where(x => x.State == "Pending").ToListAsync(ct);
+        return rows.OrderBy(x => x.CreatedAtUtc).Select(x => x.ChapterId.ToString()).ToList();
+    }
+    public async Task<int> ProcessPendingAsync(CancellationToken ct = default) { Directory.CreateDirectory(_root); var unordered = await db.Downloads.Where(x => x.State == "Pending").ToListAsync(ct); var rows = unordered.OrderBy(x => x.CreatedAtUtc).ToList(); var completed = 0; foreach (var row in rows) { var chapter = await db.Chapters.SingleAsync(x => x.Id == row.ChapterId, ct); try { if (chapter.LocalPath is null || !File.Exists(chapter.LocalPath)) throw new FileNotFoundException("Chapter source is unavailable."); var destination = Path.Combine(_root, row.ChapterId + Path.GetExtension(chapter.LocalPath)); File.Copy(chapter.LocalPath, destination, true); chapter.LocalPath = destination; row.DestinationPath = destination; row.State = "Complete"; row.Error = null; completed++; } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { row.State = "Failed"; row.Error = ex.Message; } row.UpdatedAtUtc = DateTimeOffset.UtcNow; } await db.SaveChangesAsync(ct); return completed; }
 }
 
 public sealed class MangaReader(MangaDbContext db) : IMediaReader
@@ -111,7 +122,9 @@ public sealed class MangaUpdateService(MangaDbContext db) : IMangaUpdateService
     {
         var q = db.Notifications.AsNoTracking();
         if (unreadOnly) q = q.Where(x => !x.Read);
-        return await q.OrderByDescending(x => x.CreatedAtUtc).Take(100).ToListAsync(ct);
+        // SQLite cannot ORDER BY DateTimeOffset; notifications are a bounded recent list.
+        var rows = await q.ToListAsync(ct);
+        return rows.OrderByDescending(x => x.CreatedAtUtc).Take(100).ToList();
     }
 
     public async Task MarkNotificationReadAsync(Guid notificationId, CancellationToken ct = default)
@@ -165,14 +178,19 @@ public sealed class MangaSyncService(MangaDbContext db) : IMangaSyncService
     public async Task<int> SyncAllAsync(CancellationToken ct = default)
     {
         var syncs = await db.TrackingSyncs.ToListAsync(ct);
+
+        // SQLite cannot translate DefaultIfEmpty/Max over a numeric cast, so the highest
+        // read chapter is computed in memory from a single grouped read for all trackers.
+        var mangaIds = syncs.Select(s => s.MangaId).Distinct().ToList();
+        var readRows = await db.Chapters
+            .Where(c => mangaIds.Contains(c.MangaId) && c.Read)
+            .Select(c => new { c.MangaId, c.Number })
+            .ToListAsync(ct);
+        var highestRead = readRows.GroupBy(r => r.MangaId).ToDictionary(g => g.Key, g => (int)g.Max(r => r.Number));
+
         foreach (var sync in syncs)
         {
-            var maxRead = await db.Chapters
-                .Where(c => c.MangaId == sync.MangaId && c.Read)
-                .Select(c => (int)c.Number)
-                .DefaultIfEmpty(0)
-                .MaxAsync(ct);
-
+            var maxRead = highestRead.GetValueOrDefault(sync.MangaId);
             if (maxRead > sync.LastSyncedChapter)
             {
                 sync.LastSyncedChapter = maxRead;

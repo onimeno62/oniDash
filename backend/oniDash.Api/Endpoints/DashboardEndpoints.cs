@@ -2,118 +2,67 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using oniDash.Application.Media;
 using oniDash.Core.Domain;
 using oniDash.Infrastructure.Persistence;
+using oniDash.Infrastructure.Scanning;
 
 namespace oniDash.Api.Endpoints;
 
 public static class DashboardEndpoints
 {
+    private const string FavoritesCollectionName = "Favorites";
+
     public static IEndpointRouteBuilder MapDashboardEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/dashboard").WithTags("Dashboard");
 
-        group.MapGet("/continue", async (OniDashDbContext db, int? limit, CancellationToken ct) =>
+        group.MapGet("/continue", async (OniDashDbContext db, IMediaTypeDetector types, int? limit, CancellationToken ct) =>
         {
             var take = Math.Clamp(limit ?? 12, 1, 50);
-            var items = await db.MediaItems.AsNoTracking()
-                .Include(x => x.Files)
-                .Include(x => x.Artwork)
-                .OrderByDescending(x => x.UpdatedAtUtc)
-                .Take(take)
-                .Select(x => new DashboardMediaItemDto(
-                    x.Id,
-                    x.DisplayName,
-                    x.Type.ToString(),
-                    x.Files.OrderBy(f => f.RelativePath.Length).Select(f => f.Extension).FirstOrDefault(),
-                    x.Artwork.Any(),
-                    x.UpdatedAtUtc,
-                    false
-                ))
-                .ToListAsync(ct);
-
-            return Results.Ok(items);
+            var rows = await QueryDashboardRows(db, ct, take, x => x.UpdatedAtUtc);
+            return Results.Ok(rows.Select(r => ToDto(r, types, r.Timestamp, r.IsFavorite)).ToList());
         });
 
-        group.MapGet("/recently-added", async (OniDashDbContext db, int? limit, CancellationToken ct) =>
+        group.MapGet("/recently-added", async (OniDashDbContext db, IMediaTypeDetector types, int? limit, CancellationToken ct) =>
         {
             var take = Math.Clamp(limit ?? 12, 1, 50);
-            var items = await db.MediaItems.AsNoTracking()
-                .Include(x => x.Files)
-                .Include(x => x.Artwork)
-                .OrderByDescending(x => x.CreatedAtUtc)
-                .Take(take)
-                .Select(x => new DashboardMediaItemDto(
-                    x.Id,
-                    x.DisplayName,
-                    x.Type.ToString(),
-                    x.Files.OrderBy(f => f.RelativePath.Length).Select(f => f.Extension).FirstOrDefault(),
-                    x.Artwork.Any(),
-                    x.CreatedAtUtc,
-                    false
-                ))
-                .ToListAsync(ct);
-
-            return Results.Ok(items);
+            var rows = await QueryDashboardRows(db, ct, take, x => x.CreatedAtUtc);
+            return Results.Ok(rows.Select(r => ToDto(r, types, r.Timestamp, r.IsFavorite)).ToList());
         });
 
-        group.MapGet("/recently-played", async (OniDashDbContext db, int? limit, CancellationToken ct) =>
+        group.MapGet("/recently-played", async (OniDashDbContext db, IMediaTypeDetector types, int? limit, CancellationToken ct) =>
         {
             var take = Math.Clamp(limit ?? 12, 1, 50);
-            var items = await db.MediaItems.AsNoTracking()
-                .Include(x => x.Files)
-                .Include(x => x.Artwork)
-                .OrderByDescending(x => x.UpdatedAtUtc)
-                .Take(take)
-                .Select(x => new DashboardMediaItemDto(
-                    x.Id,
-                    x.DisplayName,
-                    x.Type.ToString(),
-                    x.Files.OrderBy(f => f.RelativePath.Length).Select(f => f.Extension).FirstOrDefault(),
-                    x.Artwork.Any(),
-                    x.UpdatedAtUtc,
-                    false
-                ))
-                .ToListAsync(ct);
-
-            return Results.Ok(items);
+            var rows = await QueryDashboardRows(db, ct, take, x => x.UpdatedAtUtc);
+            return Results.Ok(rows.Select(r => ToDto(r, types, r.Timestamp, r.IsFavorite)).ToList());
         });
 
-        group.MapGet("/favorites", async (OniDashDbContext db, int? limit, CancellationToken ct) =>
+        group.MapGet("/favorites", async (OniDashDbContext db, IMediaTypeDetector types, int? limit, CancellationToken ct) =>
         {
             var take = Math.Clamp(limit ?? 12, 1, 50);
-            var items = await db.MediaItems.AsNoTracking()
-                .Include(x => x.Files)
-                .Include(x => x.Artwork)
-                .OrderBy(x => x.DisplayName)
-                .Take(take)
-                .Select(x => new DashboardMediaItemDto(
-                    x.Id,
-                    x.DisplayName,
-                    x.Type.ToString(),
-                    x.Files.OrderBy(f => f.RelativePath.Length).Select(f => f.Extension).FirstOrDefault(),
-                    x.Artwork.Any(),
-                    x.UpdatedAtUtc,
-                    true
-                ))
-                .ToListAsync(ct);
-
-            return Results.Ok(items);
+            var rows = await QueryDashboardRows(db, ct, take, x => x.UpdatedAtUtc, favoritesOnly: true);
+            return Results.Ok(rows.Select(r => ToDto(r, types, r.Timestamp, r.IsFavorite)).ToList());
         });
 
-        group.MapGet("/activity", async (OniDashDbContext db, int? limit, CancellationToken ct) =>
+        group.MapGet("/activity", async (OniDashDbContext db, IMediaTypeDetector types, int? limit, CancellationToken ct) =>
         {
             var take = Math.Clamp(limit ?? 20, 1, 100);
+            // SQLite cannot ORDER BY DateTimeOffset; the activity feed is a bounded recent list.
             var recentItems = await db.MediaItems.AsNoTracking()
+                .Include(x => x.Files)
+                .Select(x => new { x.Id, x.DisplayName, x.UpdatedAtUtc, Extension = x.Files.OrderBy(f => f.RelativePath.Length).Select(f => f.Extension).FirstOrDefault() })
+                .ToListAsync(ct);
+            var newestFirst = recentItems
                 .OrderByDescending(x => x.UpdatedAtUtc)
                 .Take(take)
-                .ToListAsync(ct);
+                .ToList();
 
-            var timeline = recentItems.Select(x => new DashboardActivityDto(
+            var timeline = newestFirst.Select(x => new DashboardActivityDto(
                 Guid.NewGuid(),
                 x.Id,
                 x.DisplayName,
-                x.Type.ToString(),
+                types.Detect(x.Extension ?? string.Empty).ToString(),
                 "Updated media item",
                 x.UpdatedAtUtc
             )).ToList();
@@ -121,30 +70,52 @@ public static class DashboardEndpoints
             return Results.Ok(timeline);
         });
 
-        group.MapGet("/recommendations", async (OniDashDbContext db, int? limit, CancellationToken ct) =>
+        group.MapGet("/recommendations", async (OniDashDbContext db, IMediaTypeDetector types, int? limit, CancellationToken ct) =>
         {
             var take = Math.Clamp(limit ?? 10, 1, 30);
-            var localItems = await db.MediaItems.AsNoTracking()
-                .Include(x => x.Files)
-                .Include(x => x.Artwork)
-                .OrderBy(x => EF.Functions.Random())
-                .Take(take)
-                .Select(x => new DashboardMediaItemDto(
-                    x.Id,
-                    x.DisplayName,
-                    x.Type.ToString(),
-                    x.Files.OrderBy(f => f.RelativePath.Length).Select(f => f.Extension).FirstOrDefault(),
-                    x.Artwork.Any(),
-                    x.UpdatedAtUtc,
-                    false
-                ))
-                .ToListAsync(ct);
-
-            return Results.Ok(localItems);
+            // SQLite has no translatable ORDER BY random(); draw a larger recency pool and
+            // shuffle in memory to keep recommendations varied.
+            var pool = await QueryDashboardRows(db, ct, Math.Min(100, take * 10), x => x.UpdatedAtUtc);
+            var shuffled = pool.OrderBy(_ => Guid.NewGuid()).Take(take).ToList();
+            return Results.Ok(shuffled.Select(r => ToDto(r, types, r.Timestamp, r.IsFavorite)).ToList());
         });
 
         return app;
     }
+
+    private static async Task<List<(Guid Id, string DisplayName, string? Extension, bool HasArtwork, DateTimeOffset Timestamp, bool IsFavorite)>> QueryDashboardRows(
+        OniDashDbContext db, CancellationToken ct, int take,
+        System.Linq.Expressions.Expression<Func<MediaItem, DateTimeOffset>> orderBy,
+        bool favoritesOnly = false)
+    {
+        IQueryable<MediaItem> query = db.MediaItems.AsNoTracking()
+            .Include(x => x.Files)
+            .Include(x => x.Artwork)
+            .Include(x => x.Collections).ThenInclude(ci => ci.Collection);
+
+        if (favoritesOnly)
+        {
+            query = query.Where(x => x.Collections.Any(ci => ci.Collection.Name == FavoritesCollectionName));
+        }
+
+        // SQLite cannot ORDER BY DateTimeOffset, so the newest-first cut happens in memory
+        // over a bounded pool (same pattern as the music plugin's play history).
+        var items = await query.ToListAsync(ct);
+        var ordered = items.OrderByDescending(orderBy.Compile()).Take(take).ToList();
+        return ordered.Select(x => (
+            x.Id,
+            x.DisplayName,
+            Extension: x.Files.OrderBy(f => f.RelativePath.Length).Select(f => f.Extension).FirstOrDefault(),
+            HasArtwork: x.Artwork.Any(),
+            Timestamp: orderBy.Compile()(x),
+            IsFavorite: x.Collections.Any(ci => ci.Collection.Name == FavoritesCollectionName)
+        )).ToList();
+    }
+
+    private static DashboardMediaItemDto ToDto(
+        (Guid Id, string DisplayName, string? Extension, bool HasArtwork, DateTimeOffset Timestamp, bool IsFavorite) row,
+        IMediaTypeDetector types, DateTimeOffset timestamp, bool isFavorite) =>
+        new(row.Id, row.DisplayName, types.Detect(row.Extension ?? string.Empty).ToString(), row.Extension, row.HasArtwork, timestamp, isFavorite);
 
     public sealed record DashboardMediaItemDto(
         Guid Id,

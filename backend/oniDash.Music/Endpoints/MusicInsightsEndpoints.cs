@@ -26,12 +26,18 @@ public static class MusicInsightsEndpoints
         }));
         music.MapGet("/statistics/top-tracks", async (MusicDbContext db, int? limit, CancellationToken ct) => Results.Ok(await db.PlayHistory.GroupBy(h => h.TrackId).Select(g => new { trackId = g.Key, plays = g.Count(), playedSeconds = g.Sum(h => h.PlayedSeconds) }).OrderByDescending(x => x.plays).ThenBy(x => x.trackId).Take(Math.Clamp(limit ?? 20, 1, 100)).ToListAsync(ct)));
         music.MapGet("/statistics/genres", async (MusicDbContext db, CancellationToken ct) => Results.Ok(await db.Tracks.Where(t => t.Genre != null && t.Genre != "").GroupBy(t => t.Genre!).Select(g => new { genre = g.Key, tracks = g.Count() }).OrderByDescending(x => x.tracks).ThenBy(x => x.genre).ToListAsync(ct)));
-        music.MapGet("/health", async (MusicDbContext db, CancellationToken ct) => Results.Ok(new
+        music.MapGet("/health", async (MusicDbContext db, CancellationToken ct) =>
         {
-            database = await db.Database.CanConnectAsync(ct),
-            tracks = await db.Tracks.CountAsync(ct),
-            lastUpdatedUtc = await db.Tracks.OrderByDescending(t => t.UpdatedAtUtc).Select(t => (DateTimeOffset?)t.UpdatedAtUtc).FirstOrDefaultAsync(ct),
-        }));
+            // SQLite cannot ORDER BY the TEXT timestamp column, so the newest track stamp
+            // is taken from a single-column read (same limitation as /history).
+            var stamps = await db.Tracks.Select(t => t.UpdatedAtUtc).ToListAsync(ct);
+            return Results.Ok(new
+            {
+                database = await db.Database.CanConnectAsync(ct),
+                tracks = await db.Tracks.CountAsync(ct),
+                lastUpdatedUtc = stamps.Count > 0 ? stamps.Max() : (DateTimeOffset?)null,
+            });
+        });
         music.MapGet("/health/duplicates", async (MusicDbContext db, int? limit, CancellationToken ct) =>
         {
             var groups = await db.Tracks.AsNoTracking()

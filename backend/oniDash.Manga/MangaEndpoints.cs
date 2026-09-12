@@ -13,7 +13,22 @@ public static class MangaEndpoints
     {
         var api = app.MapGroup("/api/manga").WithTags("Manga");
         api.MapGet("/library", async (MangaDbContext db, Guid? libraryId, int? limit, CancellationToken ct) => { var query = db.Titles.AsNoTracking(); if (libraryId is not null) query = query.Where(x => x.LibraryId == libraryId); return Results.Ok(await query.OrderBy(x => x.NormalizedTitle).Take(Math.Clamp(limit ?? 100, 1, 500)).ToListAsync(ct)); });
-        api.MapGet("/continue-reading", async (MangaDbContext db, int? limit, CancellationToken ct) => Results.Ok(await (from title in db.Titles.AsNoTracking() join chapter in db.Chapters.AsNoTracking() on title.Id equals chapter.MangaId where chapter.CurrentPage > 0 && !chapter.Read orderby chapter.LastReadAtUtc descending select title).Distinct().Take(Math.Clamp(limit ?? 12, 1, 100)).ToListAsync(ct)));
+        api.MapGet("/continue-reading", async (MangaDbContext db, int? limit, CancellationToken ct) =>
+        {
+            // SQLite cannot ORDER BY DateTimeOffset, so newest-first selection happens in
+            // memory over the bounded local catalogue (same pattern as the music plugin).
+            var rows = await db.Chapters.AsNoTracking().Where(x => x.CurrentPage > 0 && !x.Read).Select(x => new { x.MangaId, x.LastReadAtUtc }).ToListAsync(ct);
+            var take = Math.Clamp(limit ?? 12, 1, 100);
+            var ids = rows
+                .GroupBy(x => x.MangaId)
+                .Select(g => g.OrderByDescending(r => r.LastReadAtUtc).First())
+                .OrderByDescending(x => x.LastReadAtUtc)
+                .Take(take)
+                .Select(x => x.MangaId)
+                .ToList();
+            var titles = await db.Titles.AsNoTracking().Where(t => ids.Contains(t.Id)).ToListAsync(ct);
+            return Results.Ok(ids.Select(id => titles.Single(t => t.Id == id)).ToList());
+        });
         api.MapGet("/search", async (IMangaSourceAdapter source, string q, CancellationToken ct) => Results.Ok(await source.SearchAsync(q, ct)));
         api.MapGet("/browse/popular", async (IMangaSourceAdapter source, CancellationToken ct) => Results.Ok(await source.PopularAsync(ct)));
         api.MapGet("/updates", async (IMangaSourceAdapter source, CancellationToken ct) => Results.Ok(await source.LatestAsync(ct)));

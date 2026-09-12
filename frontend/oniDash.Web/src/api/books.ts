@@ -77,6 +77,10 @@ export function fetchBookHealth(libraryId?: string, signal?: AbortSignal): Promi
   return apiFetch<BookHealthReport>(`/books/health${p}`, { signal });
 }
 
+export function reindexBooks(libraryId: string): Promise<{ indexedBooks: number }> {
+  return apiFetch<{ indexedBooks: number }>(`/books/reindex?libraryId=${encodeURIComponent(libraryId)}`, { method: 'POST' });
+}
+
 export function setBookRead(id: string, read: boolean): Promise<BookSummary> {
   return apiFetch<BookSummary>(`/books/${id}/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ read }) });
 }
