@@ -275,16 +275,25 @@ public static class BooksEndpoints
     private static async Task EnsureStateTable(OniDashDbContext db, CancellationToken ct)
     {
         await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS book_catalog_state (id TEXT PRIMARY KEY, read INTEGER NOT NULL DEFAULT 0, progress_pages INTEGER NULL, rating INTEGER NULL, favorite INTEGER NOT NULL DEFAULT 0, last_read_at_utc TEXT NULL, page_count INTEGER NULL, author TEXT NULL, series TEXT NULL)", ct);
-        try
+
+        // Columns added after the table first shipped. Existing columns are probed instead
+        // of letting SQLite reject the ALTER: a swallowed SqliteException is still logged by
+        // EF as a failed command, so every books request used to emit two error entries.
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var connection = db.Database.GetDbConnection();
+        await EnsureOpen(connection, ct);
+        await using (var command = connection.CreateCommand())
         {
-            await db.Database.ExecuteSqlRawAsync("ALTER TABLE book_catalog_state ADD COLUMN author TEXT NULL", ct);
+            command.CommandText = "SELECT name FROM pragma_table_info('book_catalog_state')";
+            await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                columns.Add(reader.GetString(0));
+            }
         }
-        catch { /* already exists */ }
-        try
-        {
-            await db.Database.ExecuteSqlRawAsync("ALTER TABLE book_catalog_state ADD COLUMN series TEXT NULL", ct);
-        }
-        catch { /* already exists */ }
+
+        if (!columns.Contains("author")) await db.Database.ExecuteSqlRawAsync("ALTER TABLE book_catalog_state ADD COLUMN author TEXT NULL", ct);
+        if (!columns.Contains("series")) await db.Database.ExecuteSqlRawAsync("ALTER TABLE book_catalog_state ADD COLUMN series TEXT NULL", ct);
     }
 
     private static Task EnsureBookmarksTable(OniDashDbContext db, CancellationToken ct) => 
