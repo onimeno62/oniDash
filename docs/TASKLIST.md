@@ -70,8 +70,8 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Reading progress and bookmarks.
 - [x] Download queue and offline storage.
 - [x] Reader.
-- [ ] Library updates/notifications.
-- [ ] Tracking/sync as optional integrations.
+- [x] Library updates/notifications.
+- [x] Tracking/sync as optional integrations.
 
 ## M7 — Books platform
 - [x] Align Books with scanner/indexer.

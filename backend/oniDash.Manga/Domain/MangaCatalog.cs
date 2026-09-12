@@ -61,3 +61,26 @@ public sealed class MangaDownload
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
 }
+
+public sealed class MangaNotification
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid MangaId { get; set; }
+    public string MangaTitle { get; set; } = string.Empty;
+    public string ChapterTitle { get; set; } = string.Empty;
+    public double ChapterNumber { get; set; }
+    public bool Read { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
+public sealed class MangaTrackingSync
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid MangaId { get; set; }
+    public string TrackerName { get; set; } = string.Empty; // e.g. AniList, MyAnimeList, Kitsu
+    public string ExternalTrackingId { get; set; } = string.Empty;
+    public int LastSyncedChapter { get; set; }
+    public string Status { get; set; } = "reading";
+    public int Score { get; set; }
+    public DateTimeOffset LastSyncedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+}
