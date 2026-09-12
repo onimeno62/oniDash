@@ -36,6 +36,14 @@ export interface BookSeriesGroup {
   bookCount: number;
 }
 
+export interface BookHealthReport {
+  totalBooks: number;
+  missingCovers: number;
+  missingFiles: number;
+  missingMetadata: number;
+  generatedAtUtc: string;
+}
+
 export interface BookManifest {
   format: string;
   totalPages: number;
@@ -62,6 +70,11 @@ export function fetchBookAuthors(libraryId: string, signal?: AbortSignal): Promi
 
 export function fetchBookSeries(libraryId: string, signal?: AbortSignal): Promise<BookSeriesGroup[]> {
   return apiFetch<BookSeriesGroup[]>(`/books/series?libraryId=${encodeURIComponent(libraryId)}`, { signal });
+}
+
+export function fetchBookHealth(libraryId?: string, signal?: AbortSignal): Promise<BookHealthReport> {
+  const p = libraryId ? `?libraryId=${encodeURIComponent(libraryId)}` : '';
+  return apiFetch<BookHealthReport>(`/books/health${p}`, { signal });
 }
 
 export function setBookRead(id: string, read: boolean): Promise<BookSummary> {
