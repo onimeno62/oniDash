@@ -18,22 +18,50 @@ export interface BookSummary {
   series: string | null;
 }
 
-export interface BookStats {
-  total: number;
-  read: number;
-  unread: number;
-  pages: number;
+export interface BookBookmark {
+  id: string;
+  pageNumber: number;
+  title: string | null;
+  note: string | null;
+  createdAtUtc: string;
 }
 
-export function fetchBooks(libraryId: string, options: { read?: boolean; limit?: number; signal?: AbortSignal } = {}): Promise<BookSummary[]> {
+export interface BookAuthorGroup {
+  name: string;
+  bookCount: number;
+}
+
+export interface BookSeriesGroup {
+  title: string;
+  bookCount: number;
+}
+
+export interface BookManifest {
+  format: string;
+  totalPages: number;
+  title: string | null;
+  tableOfContents: Array<{ title: string; target: string; pageNumber: number | null }>;
+}
+
+export function fetchBooks(libraryId: string, options: { read?: boolean; author?: string; series?: string; limit?: number; signal?: AbortSignal } = {}): Promise<BookSummary[]> {
   const params = new URLSearchParams({ libraryId });
   if (options.read !== undefined) params.set('read', String(options.read));
+  if (options.author) params.set('author', options.author);
+  if (options.series) params.set('series', options.series);
   if (options.limit !== undefined) params.set('limit', String(options.limit));
   return apiFetch<BookSummary[]>(`/books?${params.toString()}`, { signal: options.signal });
 }
 
 export function fetchContinueReading(libraryId: string, signal?: AbortSignal): Promise<BookSummary[]> {
   return apiFetch<BookSummary[]>(`/books/continue?libraryId=${encodeURIComponent(libraryId)}`, { signal });
+}
+
+export function fetchBookAuthors(libraryId: string, signal?: AbortSignal): Promise<BookAuthorGroup[]> {
+  return apiFetch<BookAuthorGroup[]>(`/books/authors?libraryId=${encodeURIComponent(libraryId)}`, { signal });
+}
+
+export function fetchBookSeries(libraryId: string, signal?: AbortSignal): Promise<BookSeriesGroup[]> {
+  return apiFetch<BookSeriesGroup[]>(`/books/series?libraryId=${encodeURIComponent(libraryId)}`, { signal });
 }
 
 export function setBookRead(id: string, read: boolean): Promise<BookSummary> {
@@ -52,8 +80,26 @@ export function setBookRating(id: string, rating: number): Promise<BookSummary> 
   return apiFetch<BookSummary>(`/books/${id}/rating`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rating }) });
 }
 
-export function reindexBooks(libraryId?: string): Promise<{ indexedBooks: number }> {
-  return apiFetch<{ indexedBooks: number }>(libraryId ? `/books/reindex?libraryId=${encodeURIComponent(libraryId)}` : '/books/reindex', { method: 'POST' });
+export function fetchBookManifest(id: string): Promise<BookManifest> {
+  return apiFetch<BookManifest>(`/books/${id}/manifest`);
+}
+
+export function fetchBookBookmarks(id: string): Promise<BookBookmark[]> {
+  return apiFetch<BookBookmark[]>(`/books/${id}/bookmarks`);
+}
+
+export function createBookBookmark(id: string, pageNumber: number, title?: string, note?: string): Promise<BookBookmark> {
+  return apiFetch<BookBookmark>(`/books/${id}/bookmarks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pageNumber, title, note })
+  });
+}
+
+export function deleteBookBookmark(id: string, bookmarkId: string): Promise<void> {
+  return apiFetch<void>(`/books/${id}/bookmarks/${bookmarkId}`, { method: 'DELETE' });
 }
 
 export function bookCoverUrl(id: string): string { return `/api/books/${id}/cover`; }
+export function bookPageUrl(id: string, pageNumber: number): string { return `/api/books/${id}/pages/${pageNumber}`; }
+export function bookStreamUrl(id: string): string { return `/api/books/${id}/stream`; }
