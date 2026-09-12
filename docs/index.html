@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>oniDash — Local-First Media Library & Player for Windows</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* OKLCH Restrained Color System with tinted warm slate-indigo neutrals */
+      --bg-base: oklch(0.985 0.005 270);
+      --bg-surface: oklch(0.998 0.002 270);
+      --bg-raised: oklch(0.965 0.008 270);
+      --bg-dark: oklch(0.16 0.02 270);
+      --bg-dark-card: oklch(0.20 0.025 270);
+
+      --text-main: oklch(0.18 0.02 270);
+      --text-muted: oklch(0.46 0.02 270);
+      --text-subtle: oklch(0.62 0.015 270);
+      --text-inverse: oklch(0.98 0.005 270);
+
+      --border-subtle: oklch(0.92 0.008 270);
+      --border-strong: oklch(0.82 0.015 270);
+      --border-dark: oklch(0.26 0.025 270);
+
+      /* Primary accent: Crisp vermilion / burnt coral */
+      --primary: oklch(0.58 0.20 32);
+      --primary-hover: oklch(0.52 0.21 32);
+      --primary-tint: oklch(0.96 0.03 32);
+
+      /* Semantic status indicators */
+      --status-ok: oklch(0.62 0.16 145);
+      --status-accent: oklch(0.58 0.16 260);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 18px;
+      --radius-xl: 26px;
+
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      line-height: 1.5;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Container constraints */
+    .container {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Global Header / Nav */
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: oklch(0.985 0.005 270 / 0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 68px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      background: var(--text-main);
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      color: var(--text-inverse);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .brand-name {
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      align-items: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      transition: color 140ms ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 140ms var(--ease-out-expo);
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border-color: var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-raised);
+      transform: translateY(-1px);
+    }
+
+    .btn-dark {
+      background: var(--bg-dark);
+      color: var(--text-inverse);
+    }
+
+    .btn-dark:hover {
+      background: oklch(0.24 0.02 270);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 96px 0 72px;
+      text-align: center;
+    }
+
+    .eyebrow-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .eyebrow-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--status-ok);
+    }
+
+    .hero-title {
+      font-size: clamp(40px, 6vw, 68px);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.06;
+      color: var(--text-main);
+      max-width: 860px;
+      margin: 0 auto 24px;
+      text-wrap: balance;
+    }
+
+    .hero-subtitle {
+      font-size: 18px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      max-width: 640px;
+      margin: 0 auto 36px;
+      text-wrap: pretty;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    /* Terminal Quickstart Snippet */
+    .terminal-quickstart {
+      max-width: 580px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .terminal-code {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+    }
+
+    .prompt-symbol {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-subtle);
+      font-size: 11px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 120ms ease;
+    }
+
+    .copy-btn:hover {
+      background: var(--bg-raised);
+      color: var(--text-main);
+    }
+
+    /* App Preview Stage */
+    .stage-wrapper {
+      margin-top: 56px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-strong);
+      background: var(--bg-dark);
+      padding: 14px;
+      box-shadow: 0 24px 60px -12px oklch(0 0 0 / 0.12);
+    }
+
+    .app-frame {
+      border-radius: var(--radius-lg);
+      background: var(--bg-dark-card);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 520px;
+      border: 1px solid var(--border-dark);
+      color: var(--text-inverse);
+    }
+
+    @media (max-width: 860px) {
+      .app-frame {
+        grid-template-columns: 1fr;
+      }
+      .app-sidebar {
+        display: none;
+      }
+    }
+
+    .app-sidebar {
+      background: oklch(0.18 0.02 270);
+      border-right: 1px solid var(--border-dark);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .app-win-dots {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .win-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: oklch(0.32 0.02 270);
+    }
+
+    .side-nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .side-nav-title {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: oklch(0.55 0.015 270);
+      margin-bottom: 6px;
+      padding: 0 8px;
+      font-weight: 700;
+    }
+
+    .side-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: oklch(0.75 0.01 270);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .side-item.active {
+      background: oklch(0.24 0.03 270);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .app-main-view {
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow: hidden;
+    }
+
+    .app-top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .app-search-mock {
+      background: oklch(0.24 0.025 270);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-size: 12.5px;
+      color: oklch(0.65 0.01 270);
+      width: 280px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Mock Media Shelf Cards */
+    .mock-shelf {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .mock-shelf-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: oklch(0.92 0.01 270);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .mock-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .mock-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .mock-card {
+      background: oklch(0.22 0.025 270);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mock-poster {
+      aspect-ratio: 16/10;
+      background: oklch(0.28 0.03 270);
+      position: relative;
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: oklch(0.65 0.02 270);
+    }
+
+    .mock-progress-line {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: var(--primary);
+    }
+
+    .mock-card-body {
+      padding: 10px 12px;
+    }
+
+    .mock-card-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #fff;
+    }
+
+    .mock-card-sub {
+      font-size: 11px;
+      color: oklch(0.60 0.01 270);
+      margin-top: 2px;
+    }
+
+    /* Value Pillars Section */
+    .section {
+      padding: 96px 0;
+    }
+
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .section-heading {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      max-width: 580px;
+      margin-bottom: 16px;
+      text-wrap: balance;
+    }
+
+    .section-lead {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 640px;
+      line-height: 1.6;
+      margin-bottom: 56px;
+      text-wrap: pretty;
+    }
+
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+    @media (max-width: 860px) {
+      .pillars-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .pillar-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .pillar-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      display: grid;
+      place-items: center;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .pillar-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .pillar-desc {
+      font-size: 14.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Domain Capabilities Deep Dive */
+    .capabilities-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    .cap-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 44px;
+    }
+
+    @media (max-width: 840px) {
+      .cap-row {
+        grid-template-columns: 1fr;
+        padding: 28px;
+      }
+    }
+
+    .cap-info {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .cap-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+    }
+
+    .cap-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .cap-desc {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      line-height: 1.65;
+    }
+
+    .cap-specs {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .cap-specs li {
+      font-size: 13.5px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cap-specs li::before {
+      content: '—';
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .cap-visual {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .code-preview-bar {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      color: var(--text-subtle);
+    }
+
+    /* Architecture Visual Breakdown */
+    .arch-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 36px;
+    }
+
+    @media (max-width: 960px) {
+      .arch-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 560px) {
+      .arch-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .arch-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 240px;
+    }
+
+    .arch-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+    }
+
+    .arch-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 8px;
+    }
+
+    .arch-text {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    .arch-file {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      background: var(--bg-raised);
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: var(--text-subtle);
+      margin-top: auto;
+    }
+
+    /* Comparison Table */
+    .table-wrapper {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+      margin-top: 36px;
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    .comp-table th,
+    .comp-table td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .comp-table th {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-subtle);
+      background: var(--bg-raised);
+    }
+
+    .comp-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comp-table td.highlight {
+      font-weight: 600;
+      color: var(--text-main);
+      background: oklch(0.97 0.01 32 / 0.2);
+    }
+
+    /* Final CTA Banner */
+    .cta-banner {
+      background: var(--bg-dark);
+      border-radius: var(--radius-xl);
+      padding: 72px 48px;
+      text-align: center;
+      color: var(--text-inverse);
+      margin: 48px 0 96px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-title {
+      font-size: clamp(32px, 4vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .cta-sub {
+      color: oklch(0.70 0.01 270);
+      font-size: 16px;
+      max-width: 540px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .site-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 48px 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 120ms ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a href="#" class="nav-brand">
+        <div class="brand-mark">鬼</div>
+        <span class="brand-name">oniDash</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#domains">Domains</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#comparison">Why oniDash</a></li>
+        <li><a href="#quickstart">Quickstart</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/onimeno62/oniDash" class="btn btn-secondary">
+          <span>GitHub</span>
+        </a>
+        <a href="https://github.com/onimeno62/oniDash/releases" class="btn btn-primary">
+          <span>Download v1.0</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero container">
+      <div class="eyebrow-pill">
+        <span class="eyebrow-dot"></span>
+        <span>oniDash v1.0.0 is live · 100% Gated Milestones Complete</span>
+      </div>
+
+      <h1 class="hero-title">
+        A local-first media platform built for your own hardware.
+      </h1>
+
+      <p class="hero-subtitle">
+        Your music, movies, manga, and books unified into a blazing fast desktop dashboard. Powered by ASP.NET Core 9, isolated SQLite domains, and a snappy React interface.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="https://github.com/onimeno62/oniDash/releases/latest" class="btn btn-primary" style="padding: 13px 26px; font-size: 15px;">
+          <span>Download for Windows</span>
+        </a>
+        <a href="#architecture" class="btn btn-secondary" style="padding: 13px 24px; font-size: 15px;">
+          <span>Inspect Architecture</span>
+        </a>
+      </div>
+
+      <div class="terminal-quickstart">
+        <div class="terminal-code">
+          <span class="prompt-symbol">$</span>
+          <span id="cloneCmd">git clone https://github.com/onimeno62/oniDash.git && build-windows-release.bat</span>
+        </div>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+      </div>
+
+      <!-- Live-Look Desktop Frame Preview -->
+      <div class="stage-wrapper">
+        <div class="app-frame">
+          <aside class="app-sidebar">
+            <div class="app-win-dots">
+              <span class="win-dot"></span>
+              <span class="win-dot"></span>
+              <span class="win-dot"></span>
+            </div>
+            <div class="side-nav-group">
+              <span class="side-nav-title">Platform</span>
+              <div class="side-item active">
+                <span>Unified Dashboard</span>
+              </div>
+              <div class="side-item">
+                <span>Global Search</span>
+              </div>
+            </div>
+
+            <div class="side-nav-group">
+              <span class="side-nav-title">Catalogues</span>
+              <div class="side-item">
+                <span>Music Library</span>
+              </div>
+              <div class="side-item">
+                <span>Movies & Series</span>
+              </div>
+              <div class="side-item">
+                <span>Manga Platform</span>
+              </div>
+              <div class="side-item">
+                <span>Books & Documents</span>
+              </div>
+            </div>
+
+            <div class="side-nav-group" style="margin-top: auto;">
+              <div class="side-item">
+                <span>Library Health (100%)</span>
+              </div>
+            </div>
+          </aside>
+
+          <section class="app-main-view">
+            <div class="app-top-header">
+              <div class="app-search-mock">
+                <span>Search across tracks, series, books...</span>
+              </div>
+              <span style="font-family: var(--font-mono); font-size: 11px; color: oklch(0.60 0.01 270);">localhost:5275</span>
+            </div>
+
+            <div class="mock-shelf">
+              <div class="mock-shelf-title">
+                <span>Continue Reading & Watching</span>
+                <span style="font-size: 11px; color: var(--primary); cursor: pointer;">View All →</span>
+              </div>
+              <div class="mock-grid">
+                <div class="mock-card">
+                  <div class="mock-poster">
+                    <span>EPISODE 04</span>
+                    <div class="mock-progress-line" style="width: 65%;"></div>
+                  </div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Cyberpunk: Edgerunners</p>
+                    <p class="mock-card-sub">TV Series · S1 E04</p>
+                  </div>
+                </div>
+
+                <div class="mock-card">
+                  <div class="mock-poster">
+                    <span>CHAPTER 104</span>
+                    <div class="mock-progress-line" style="width: 82%;"></div>
+                  </div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Chainsaw Man</p>
+                    <p class="mock-card-sub">Manga · Ch. 104</p>
+                  </div>
+                </div>
+
+                <div class="mock-card">
+                  <div class="mock-poster">
+                    <span>PAGE 142</span>
+                    <div class="mock-progress-line" style="width: 38%;"></div>
+                  </div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Neuromancer</p>
+                    <p class="mock-card-sub">William Gibson · EPUB</p>
+                  </div>
+                </div>
+
+                <div class="mock-card">
+                  <div class="mock-poster">
+                    <span>TRACK 08</span>
+                    <div class="mock-progress-line" style="width: 90%;"></div>
+                  </div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Random Access Memories</p>
+                    <p class="mock-card-sub">Daft Punk · FLAC</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-shelf">
+              <div class="mock-shelf-title">
+                <span>Recent Local Recommendations</span>
+              </div>
+              <div class="mock-grid">
+                <div class="mock-card">
+                  <div class="mock-poster">MOVIE</div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Blade Runner 2049</p>
+                    <p class="mock-card-sub">MKV · 4K HDR</p>
+                  </div>
+                </div>
+                <div class="mock-card">
+                  <div class="mock-poster">SERIES</div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Steins;Gate</p>
+                    <p class="mock-card-sub">24 Episodes</p>
+                  </div>
+                </div>
+                <div class="mock-card">
+                  <div class="mock-poster">ALBUM</div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Discovery</p>
+                    <p class="mock-card-sub">Daft Punk · ReplayGain OK</p>
+                  </div>
+                </div>
+                <div class="mock-card">
+                  <div class="mock-poster">BOOK</div>
+                  <div class="mock-card-body">
+                    <p class="mock-card-name">Snow Crash</p>
+                    <p class="mock-card-sub">Neal Stephenson</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- Value Pillars -->
+    <section class="section container">
+      <p class="section-eyebrow">Design Philosophy</p>
+      <h2 class="section-heading">Engineered for speed, privacy, and sovereignty.</h2>
+      <p class="section-lead">Cloud media servers lock your data inside subscription walled gardens. oniDash treats your filesystem as the source of truth.</p>
+
+      <div class="pillars-grid">
+        <div class="pillar-col">
+          <div class="pillar-icon-box">✓</div>
+          <h3 class="pillar-title">100% Local-First & Private</h3>
+          <p class="pillar-desc">
+            No mandatory cloud accounts, telemetry backdoors, or external tracking. Your media files, playlists, and viewing history remain strictly on your local disk.
+          </p>
+        </div>
+
+        <div class="pillar-col">
+          <div class="pillar-icon-box">⚡</div>
+          <h3 class="pillar-title">Sub-Millisecond SQLite FTS5</h3>
+          <p class="pillar-desc">
+            Live incremental database triggers keep an SQLite FTS5 index synchronized with your media. Prefix queries, typos, and fuzzy searches resolve instantly.
+          </p>
+        </div>
+
+        <div class="pillar-col">
+          <div class="pillar-icon-box">⊞</div>
+          <h3 class="pillar-title">Native Windows Productization</h3>
+          <p class="pillar-desc">
+            Equipped with global keyboard media keys, system tray life cycle, file association registrations, and one-click full archive backup and migration.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Domain Capabilities Deep Dive -->
+    <section id="domains" class="section container" style="padding-top: 0;">
+      <p class="section-eyebrow">The 4 Core Catalogues</p>
+      <h2 class="section-heading">Four distinct mediums. Zero compromises.</h2>
+      <p class="section-lead">Generic players treat every file the same. oniDash embeds specialized domain engines designed around the unique demands of each media type.</p>
+
+      <div class="capabilities-stack">
+        <!-- Audio Row -->
+        <div class="cap-row">
+          <div class="cap-info">
+            <span class="cap-tag">Milestone M4 · Audio Subsystem</span>
+            <h3 class="cap-title">Hi-Fi Music with ReplayGain & ID3 Tagging</h3>
+            <p class="cap-desc">
+              Direct ID3v2, Vorbis Comment, and FLAC tag parsing. Features automatic ReplayGain peak/loudness normalization extraction to eliminate jarring volume spikes across albums.
+            </p>
+            <ul class="cap-specs">
+              <li>ReplayGain track and album gain persistence</li>
+              <li>Embedded artwork extraction and caching</li>
+              <li>Gapless playback and cue/playlist boundaries</li>
+            </ul>
+          </div>
+          <div class="cap-visual">
+            <div class="code-preview-bar">
+              <span>backend/oniDash.Music/Tagging/AudioTagReader.cs</span>
+              <span>C# 13</span>
+            </div>
+            <code>// ReplayGain & ID3 Extraction Pipeline<br>var tags = await AudioTagReader.ReadAsync(filePath);<br>var gain = tags.ReplayGainTrackGainDb ?? 0.0;<br>var peak = tags.ReplayGainTrackPeak ?? 1.0;</code>
+          </div>
+        </div>
+
+        <!-- Video Row -->
+        <div class="cap-row">
+          <div class="cap-info">
+            <span class="cap-tag">Milestone M5 · Video Subsystem</span>
+            <h3 class="cap-title">Series, Seasons & Episode Hierarchy</h3>
+            <p class="cap-desc">
+              Moving beyond flat movie files: oniDash models multi-season TV shows and anime with automated episode detection, watch progress persistence, and unified continue-watching queues.
+            </p>
+            <ul class="cap-specs">
+              <li>Series, Season, and Episode database models</li>
+              <li>HTTP 206 Byte-Range streaming for instant video seeking</li>
+              <li>Anime-specific metadata as optional provider enrichment</li>
+            </ul>
+          </div>
+          <div class="cap-visual">
+            <div class="code-preview-bar">
+              <span>backend/oniDash.Movies/Domain/MovieCatalog.cs</span>
+              <span>EF Core 9</span>
+            </div>
+            <code>public sealed class Series {<br>&nbsp;&nbsp;public Guid Id { get; set; }<br>&nbsp;&nbsp;public string Title { get; set; }<br>&nbsp;&nbsp;public List&lt;Season&gt; Seasons { get; set; }<br>}</code>
+          </div>
+        </div>
+
+        <!-- Manga Row -->
+        <div class="cap-row">
+          <div class="cap-info">
+            <span class="cap-tag">Milestone M6 · Manga Platform</span>
+            <h3 class="cap-title">Mihon Extensions & Chapter Sync</h3>
+            <p class="cap-desc">
+              A modern reader platform with extension lifecycle management, download queue for offline copies, automated chapter notification triggers, and 2-way AniList / MyAnimeList tracking sync.
+            </p>
+            <ul class="cap-specs">
+              <li>Mihon/Suwayomi compatible plugin execution boundary</li>
+              <li>Offline chapter download queue with failure retries</li>
+              <li>AniList & MyAnimeList progress synchronization</li>
+            </ul>
+          </div>
+          <div class="cap-visual">
+            <div class="code-preview-bar">
+              <span>backend/oniDash.Manga/MangaServices.cs</span>
+              <span>Sync Engine</span>
+            </div>
+            <code>// 2-Way Tracker Sync Engine<br>var unread = await tracker.SyncAllAsync(ct);<br>// Automatically records reading chapter position</code>
+          </div>
+        </div>
+
+        <!-- Books Row -->
+        <div class="cap-row">
+          <div class="cap-info">
+            <span class="cap-tag">Milestone M7 · Document Engine</span>
+            <h3 class="cap-title">EPUB & CBZ Readers with Page Bookmarks</h3>
+            <p class="cap-desc">
+              Read digital books and comic archives directly in the browser. Features Table of Contents parsing, on-the-fly CBZ image extraction, persistent page bookmarks, and library health diagnostics.
+            </p>
+            <ul class="cap-specs">
+              <li>Archive-level Table of Contents and chapter parsing</li>
+              <li>Persistent user bookmarks and annotations</li>
+              <li>Dedicated /api/books/health missing-cover audits</li>
+            </ul>
+          </div>
+          <div class="cap-visual">
+            <div class="code-preview-bar">
+              <span>backend/oniDash.Books/Reader/BookReaderService.cs</span>
+              <span>Reader Core</span>
+            </div>
+            <code>var manifest = await reader.GetManifestAsync(path);<br>var pageStream = await reader.GetPageAsync(path, 42);<br>// Returns decoded image/jpeg without temporary files</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="section container">
+      <div class="arch-container">
+        <p class="section-eyebrow">Under The Hood</p>
+        <h2 class="section-heading">Multi-Database SQLite Isolation</h2>
+        <p class="section-lead" style="margin-bottom: 0;">
+          Instead of cramming every media type into a single shared database that risks lock contention during heavy scanner indexing, oniDash isolates domains into distinct SQLite files.
+        </p>
+
+        <div class="arch-grid">
+          <div class="arch-card">
+            <div>
+              <span class="arch-badge">Core Engine</span>
+              <h4 class="arch-name">oniDash.db</h4>
+              <p class="arch-text">Source roots, recursive filesystem entries, file signatures, and FTS5 search index triggers.</p>
+            </div>
+            <span class="arch-file">Infrastructure/Persistence</span>
+          </div>
+
+          <div class="arch-card">
+            <div>
+              <span class="arch-badge">Audio Catalogue</span>
+              <h4 class="arch-name">music.db</h4>
+              <p class="arch-text">Tracks, album artists, ReplayGain normalization values, playlists, and cover art references.</p>
+            </div>
+            <span class="arch-file">Music/Persistence</span>
+          </div>
+
+          <div class="arch-card">
+            <div>
+              <span class="arch-badge">Video Catalogue</span>
+              <h4 class="arch-name">movies.db</h4>
+              <p class="arch-text">Movies, TV series, season hierarchies, video probe metadata, and continue-watching state.</p>
+            </div>
+            <span class="arch-file">Movies/Persistence</span>
+          </div>
+
+          <div class="arch-card">
+            <div>
+              <span class="arch-badge">Manga Catalogue</span>
+              <h4 class="arch-name">manga.db</h4>
+              <p class="arch-text">Plugin state, chapter indexes, bookmarks, offline downloads, and external tracking sync.</p>
+            </div>
+            <span class="arch-file">Manga/Persistence</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison Table -->
+    <section id="comparison" class="section container">
+      <p class="section-eyebrow">Comparison</p>
+      <h2 class="section-heading">How oniDash compares to traditional setups</h2>
+      <p class="section-lead">A purpose-built desktop experience versus complex self-hosted servers.</p>
+
+      <div class="table-wrapper">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="highlight">oniDash</th>
+              <th>Plex / Jellyfin</th>
+              <th>Standalone Players (VLC/Foobar)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Architecture</strong></td>
+              <td class="highlight">Local-first desktop single-file app</td>
+              <td>Client-server web service</td>
+              <td>Single-file local desktop app</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-Media Support</strong></td>
+              <td class="highlight">Music, Movies, TV, Manga, Books (All in One)</td>
+              <td>Movies & Music (Weak Book/Manga support)</td>
+              <td>Requires separate apps for each medium</td>
+            </tr>
+            <tr>
+              <td><strong>Database Model</strong></td>
+              <td class="highlight">Multi-Context isolated SQLite + FTS5</td>
+              <td>Monolithic SQLite / PostgreSQL</td>
+              <td>In-memory playlist or single local cache</td>
+            </tr>
+            <tr>
+              <td><strong>Setup Time</strong></td>
+              <td class="highlight">0 seconds (Run .exe, point to folder)</td>
+              <td>15-30 mins (Port forwarding, accounts)</td>
+              <td>0 seconds</td>
+            </tr>
+            <tr>
+              <td><strong>Windows OS Hooks</strong></td>
+              <td class="highlight">Tray lifecycle, Media keys, File associations</td>
+              <td>Web-only or web-wrapped container</td>
+              <td>Native OS hooks</td>
+            </tr>
+            <tr>
+              <td><strong>Manga & Tracker Sync</strong></td>
+              <td class="highlight">Native Mihon plugins & AniList/MAL sync</td>
+              <td>Requires third-party plugins/Komga</td>
+              <td>None</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Final Call to Action -->
+    <section id="quickstart" class="container">
+      <div class="cta-banner">
+        <h2 class="cta-title">Take back control of your media library.</h2>
+        <p class="cta-sub">
+          Open source, zero telemetry, and built to run on your own PC without compromise. Download the executable or build from source in seconds.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
+          <a href="https://github.com/onimeno62/oniDash/releases" class="btn btn-primary" style="padding: 14px 28px; font-size: 15px;">
+            <span>Get v1.0.0 for Windows</span>
+          </a>
+          <a href="https://github.com/onimeno62/oniDash" class="btn btn-dark" style="padding: 14px 24px; font-size: 15px; border: 1px solid var(--border-dark);">
+            <span>Star on GitHub</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-weight: 700; color: var(--text-main);">oniDash</span>
+        <span style="color: var(--text-subtle);">·</span>
+        <span>MIT License</span>
+        <span style="color: var(--text-subtle);">·</span>
+        <span>Built by <a href="https://github.com/onimeno62" style="color: var(--text-muted); text-decoration: underline;">onimeno62</a></span>
+      </div>
+
+      <ul class="footer-links">
+        <li><a href="https://github.com/onimeno62/oniDash/blob/main/docs/ARCHITECTURE-SPEC.md">Architecture Spec</a></li>
+        <li><a href="https://github.com/onimeno62/oniDash/blob/main/docs/TASKLIST.md">Milestone Audit</a></li>
+        <li><a href="https://github.com/onimeno62/oniDash/blob/main/docs/RELEASE-NOTES-v1.0.0.md">Release Notes</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+    // Copy quickstart command handler
+    const copyBtn = document.getElementById('copyBtn');
+    const cloneCmd = document.getElementById('cloneCmd');
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(cloneCmd.textContent.trim()).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>
