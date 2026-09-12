@@ -61,6 +61,42 @@ public static class BooksEndpoints
             return Results.Ok(seriesList);
         });
 
+        books.MapGet("/health", async (OniDashDbContext db, Guid? libraryId, CancellationToken ct) =>
+        {
+            await EnsureStateTable(db, ct);
+            var query = db.MediaItems.AsNoTracking()
+                .Include(x => x.Files)
+                .Include(x => x.Artwork)
+                .Where(x => x.Files.Any(f => BookExtensions.Contains(f.Extension)));
+
+            if (libraryId is not null)
+            {
+                query = query.Where(x => x.LibraryId == libraryId.Value);
+            }
+
+            var items = await query.ToListAsync(ct);
+            var states = await ReadStates(db, items.Select(x => x.Id).ToArray(), ct);
+
+            var totalBooks = items.Count;
+            var missingCovers = items.Count(x => !x.Artwork.Any());
+            var missingFiles = items.Count(x => x.Files.Any(f => f.MissingSinceUtc != null || (!string.IsNullOrWhiteSpace(f.AbsolutePath) && !File.Exists(f.AbsolutePath))));
+            var missingMetadata = items.Count(x =>
+            {
+                var s = states.GetValueOrDefault(x.Id);
+                return string.IsNullOrWhiteSpace(s?.Author) && string.IsNullOrWhiteSpace(s?.Series) && (s?.PageCount == null || s.PageCount == 0);
+            });
+
+            var report = new BookHealthReportDto(
+                totalBooks,
+                missingCovers,
+                missingFiles,
+                missingMetadata,
+                DateTimeOffset.UtcNow
+            );
+
+            return Results.Ok(report);
+        });
+
         books.MapPost("/{id:guid}/read", async (OniDashDbContext db, Guid id, BookReadRequest request, CancellationToken ct) => await Mutate(db, id, read: request.Read, ct: ct));
         books.MapPost("/{id:guid}/favorite", async (OniDashDbContext db, Guid id, BookFavoriteRequest request, CancellationToken ct) => await Mutate(db, id, favorite: request.Favorite, ct: ct));
         books.MapPost("/{id:guid}/progress", async (OniDashDbContext db, Guid id, BookProgressRequest request, CancellationToken ct) => await Mutate(db, id, progressPages: Math.Max(0, request.ProgressPages), lastReadAtUtc: DateTimeOffset.UtcNow, ct: ct));
@@ -243,6 +279,7 @@ public static class BooksEndpoints
     public sealed record BookmarkDto(Guid Id, int PageNumber, string? Title, string? Note, DateTimeOffset CreatedAtUtc);
     public sealed record BookAuthorDto(string Name, int BookCount);
     public sealed record BookSeriesDto(string Title, int BookCount);
+    public sealed record BookHealthReportDto(int TotalBooks, int MissingCovers, int MissingFiles, int MissingMetadata, DateTimeOffset GeneratedAtUtc);
     private sealed record BookState(bool Read, int? ProgressPages, int? Rating, bool Favorite, DateTimeOffset? LastReadAtUtc, int? PageCount, string? Author, string? Series);
     public sealed record BookDto(string Id, string MediaItemId, string Title, string? Author, int? Year, int? PageCount, string? Format, bool HasCover, bool Read, int? ProgressPages, double? ProgressPercent, DateTimeOffset? LastReadAtUtc, int? Rating, bool Favorite, string? Series);
 }

@@ -80,7 +80,7 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Reading progress and bookmarks.
 - [x] EPUB/PDF reader.
 - [x] Search/filter/sort parity.
-- [ ] Library health integration.
+- [x] Library health integration.
 
 ## M8 — Unified dashboard
 - [x] Continue Reading/Watching/Listening.
