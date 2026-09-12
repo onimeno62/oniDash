@@ -15,6 +15,20 @@ public interface IMangaSourceAdapter : IMangaChapterSource
 public interface IMangaPluginManager : IMediaPluginManager { Task<PluginDescriptor?> UpdateAsync(string pluginId, CancellationToken cancellationToken = default); }
 public interface IMangaDownloadProcessor { Task<int> ProcessPendingAsync(CancellationToken cancellationToken = default); }
 
+public interface IMangaUpdateService
+{
+    Task<int> CheckForUpdatesAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<MangaNotification>> GetNotificationsAsync(bool unreadOnly = false, CancellationToken ct = default);
+    Task MarkNotificationReadAsync(Guid notificationId, CancellationToken ct = default);
+}
+
+public interface IMangaSyncService
+{
+    Task<IReadOnlyList<MangaTrackingSync>> GetTrackersAsync(Guid mangaId, CancellationToken ct = default);
+    Task<MangaTrackingSync> SaveTrackerAsync(Guid mangaId, string trackerName, string externalId, int lastChapter, string status, int score, CancellationToken ct = default);
+    Task<int> SyncAllAsync(CancellationToken ct = default);
+}
+
 public sealed class LocalMangaSource(MangaDbContext db) : IMangaSourceAdapter
 {
     public string Id => "local";
@@ -61,4 +75,111 @@ public sealed class MangaReader(MangaDbContext db) : IMediaReader
     public async Task<Stream?> OpenPageAsync(string documentId, int page, CancellationToken ct = default) { var path = await PathFor(documentId, ct); if (path is null || page < 0) return null; using var archive = ZipFile.OpenRead(path); var entry = archive.Entries.Where(x => IsImage(x.FullName)).OrderBy(x => x.FullName, StringComparer.OrdinalIgnoreCase).ElementAtOrDefault(page); if (entry is null) return null; var output = new MemoryStream(); await using var input = entry.Open(); await input.CopyToAsync(output, ct); output.Position = 0; return output; }
     private async Task<string?> PathFor(string id, CancellationToken ct) { if (!Guid.TryParse(id, out var guid)) return null; var path = await db.Chapters.AsNoTracking().Where(x => x.Id == guid).Select(x => x.LocalPath).SingleOrDefaultAsync(ct); return path is not null && File.Exists(path) && new[] { ".cbz", ".zip" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase) ? path : null; }
     private static bool IsImage(string path) => new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+}
+
+public sealed class MangaUpdateService(MangaDbContext db) : IMangaUpdateService
+{
+    public async Task<int> CheckForUpdatesAsync(CancellationToken ct = default)
+    {
+        var titles = await db.Titles.ToListAsync(ct);
+        var created = 0;
+        foreach (var t in titles)
+        {
+            var latestChapter = await db.Chapters.Where(c => c.MangaId == t.Id).OrderByDescending(c => c.Number).FirstOrDefaultAsync(ct);
+            if (latestChapter is not null && !await db.Notifications.AnyAsync(n => n.MangaId == t.Id && n.ChapterNumber == latestChapter.Number, ct))
+            {
+                db.Notifications.Add(new MangaNotification
+                {
+                    MangaId = t.Id,
+                    MangaTitle = t.Title,
+                    ChapterTitle = latestChapter.Title,
+                    ChapterNumber = latestChapter.Number,
+                    Read = false,
+                    CreatedAtUtc = DateTimeOffset.UtcNow
+                });
+                created++;
+            }
+        }
+        if (created > 0)
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        return created;
+    }
+
+    public async Task<IReadOnlyList<MangaNotification>> GetNotificationsAsync(bool unreadOnly = false, CancellationToken ct = default)
+    {
+        var q = db.Notifications.AsNoTracking();
+        if (unreadOnly) q = q.Where(x => !x.Read);
+        return await q.OrderByDescending(x => x.CreatedAtUtc).Take(100).ToListAsync(ct);
+    }
+
+    public async Task MarkNotificationReadAsync(Guid notificationId, CancellationToken ct = default)
+    {
+        var n = await db.Notifications.SingleOrDefaultAsync(x => x.Id == notificationId, ct);
+        if (n is not null)
+        {
+            n.Read = true;
+            await db.SaveChangesAsync(ct);
+        }
+    }
+}
+
+public sealed class MangaSyncService(MangaDbContext db) : IMangaSyncService
+{
+    public async Task<IReadOnlyList<MangaTrackingSync>> GetTrackersAsync(Guid mangaId, CancellationToken ct = default)
+    {
+        return await db.TrackingSyncs.AsNoTracking().Where(x => x.MangaId == mangaId).OrderBy(x => x.TrackerName).ToListAsync(ct);
+    }
+
+    public async Task<MangaTrackingSync> SaveTrackerAsync(Guid mangaId, string trackerName, string externalId, int lastChapter, string status, int score, CancellationToken ct = default)
+    {
+        var row = await db.TrackingSyncs.SingleOrDefaultAsync(x => x.MangaId == mangaId && x.TrackerName == trackerName, ct);
+        if (row is null)
+        {
+            row = new MangaTrackingSync
+            {
+                MangaId = mangaId,
+                TrackerName = trackerName,
+                ExternalTrackingId = externalId,
+                LastSyncedChapter = lastChapter,
+                Status = status,
+                Score = score,
+                LastSyncedAtUtc = DateTimeOffset.UtcNow
+            };
+            db.TrackingSyncs.Add(row);
+        }
+        else
+        {
+            row.ExternalTrackingId = externalId;
+            row.LastSyncedChapter = lastChapter;
+            row.Status = status;
+            row.Score = score;
+            row.LastSyncedAtUtc = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return row;
+    }
+
+    public async Task<int> SyncAllAsync(CancellationToken ct = default)
+    {
+        var syncs = await db.TrackingSyncs.ToListAsync(ct);
+        foreach (var sync in syncs)
+        {
+            var maxRead = await db.Chapters
+                .Where(c => c.MangaId == sync.MangaId && c.Read)
+                .Select(c => (int)c.Number)
+                .DefaultIfEmpty(0)
+                .MaxAsync(ct);
+
+            if (maxRead > sync.LastSyncedChapter)
+            {
+                sync.LastSyncedChapter = maxRead;
+                sync.LastSyncedAtUtc = DateTimeOffset.UtcNow;
+            }
+        }
+        await db.SaveChangesAsync(ct);
+        return syncs.Count;
+    }
 }

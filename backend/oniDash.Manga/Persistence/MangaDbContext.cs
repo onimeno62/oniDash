@@ -10,6 +10,8 @@ public sealed class MangaDbContext(DbContextOptions<MangaDbContext> options) : D
     public DbSet<MangaBookmarkEntity> Bookmarks => Set<MangaBookmarkEntity>();
     public DbSet<MangaPlugin> Plugins => Set<MangaPlugin>();
     public DbSet<MangaDownload> Downloads => Set<MangaDownload>();
+    public DbSet<MangaNotification> Notifications => Set<MangaNotification>();
+    public DbSet<MangaTrackingSync> TrackingSyncs => Set<MangaTrackingSync>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,6 +20,8 @@ public sealed class MangaDbContext(DbContextOptions<MangaDbContext> options) : D
         modelBuilder.Entity<MangaBookmarkEntity>(e => { e.ToTable("MangaBookmarks"); e.HasIndex(x => new { x.ChapterId, x.Page }).IsUnique(); e.HasOne<MangaChapter>().WithMany().HasForeignKey(x => x.ChapterId).OnDelete(DeleteBehavior.Cascade); });
         modelBuilder.Entity<MangaPlugin>(e => { e.ToTable("MangaPlugins"); e.HasKey(x => x.Id); e.Property(x => x.Id).HasMaxLength(128); e.Property(x => x.Name).HasMaxLength(256).IsRequired(); });
         modelBuilder.Entity<MangaDownload>(e => { e.ToTable("MangaDownloads"); e.HasIndex(x => new { x.ChapterId, x.State }); e.HasOne<MangaChapter>().WithMany().HasForeignKey(x => x.ChapterId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<MangaNotification>(e => { e.ToTable("MangaNotifications"); e.HasKey(x => x.Id); e.HasIndex(x => x.MangaId); e.HasIndex(x => x.Read); });
+        modelBuilder.Entity<MangaTrackingSync>(e => { e.ToTable("MangaTrackingSyncs"); e.HasKey(x => x.Id); e.HasIndex(x => new { x.MangaId, x.TrackerName }).IsUnique(); });
     }
 }
 

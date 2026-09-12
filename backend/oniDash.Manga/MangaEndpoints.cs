@@ -38,9 +38,49 @@ public static class MangaEndpoints
         api.MapPost("/downloads/process", async (IMangaDownloadProcessor processor, CancellationToken ct) => Results.Ok(new { completed = await processor.ProcessPendingAsync(ct) }));
         api.MapGet("/chapters/{chapterId:guid}/pages", async (IMediaReader reader, Guid chapterId, CancellationToken ct) => { var count = await reader.GetPageCountAsync(chapterId.ToString(), ct); return count is null ? Results.NotFound() : Results.Ok(new { pageCount = count }); });
         api.MapGet("/chapters/{chapterId:guid}/pages/{page:int}", async (IMediaReader reader, Guid chapterId, int page, CancellationToken ct) => { var stream = await reader.OpenPageAsync(chapterId.ToString(), page, ct); return stream is null ? Results.NotFound() : Results.Stream(stream, "application/octet-stream"); });
-        api.MapPost("/update", () => Results.Accepted());
+        
+        // Notifications & Updates
+        api.MapPost("/update", async (IMangaUpdateService updateService, CancellationToken ct) => 
+        {
+            var newItems = await updateService.CheckForUpdatesAsync(ct);
+            return Results.Ok(new { updated = true, newChaptersFound = newItems });
+        });
+        api.MapGet("/notifications", async (IMangaUpdateService updateService, bool? unreadOnly, CancellationToken ct) => 
+        {
+            return Results.Ok(await updateService.GetNotificationsAsync(unreadOnly ?? false, ct));
+        });
+        api.MapPost("/notifications/{id:guid}/read", async (IMangaUpdateService updateService, Guid id, CancellationToken ct) => 
+        {
+            await updateService.MarkNotificationReadAsync(id, ct);
+            return Results.NoContent();
+        });
+
+        // Tracking / Sync Integrations
+        api.MapGet("/{mangaId:guid}/trackers", async (IMangaSyncService syncService, Guid mangaId, CancellationToken ct) => 
+        {
+            return Results.Ok(await syncService.GetTrackersAsync(mangaId, ct));
+        });
+        api.MapPost("/{mangaId:guid}/trackers", async (IMangaSyncService syncService, Guid mangaId, SaveTrackerRequest request, CancellationToken ct) => 
+        {
+            var saved = await syncService.SaveTrackerAsync(mangaId, request.TrackerName, request.ExternalTrackingId, request.LastSyncedChapter, request.Status ?? "reading", request.Score ?? 0, ct);
+            return Results.Ok(saved);
+        });
+        api.MapPost("/sync", async (IMangaSyncService syncService, CancellationToken ct) => 
+        {
+            var count = await syncService.SyncAllAsync(ct);
+            return Results.Ok(new { synced = count });
+        });
+
         return app;
     }
 
-    public sealed record ProgressRequest(double Progress); public sealed record LegacyProgressRequest(string Chapter); public sealed record BookmarkRequest(int Page, string? Note); public sealed record EnabledRequest(bool Enabled); public sealed record FavoriteRequest(bool Favorite); public sealed record InstallRequest(string SourceId); public sealed record DownloadRequest(IReadOnlyCollection<string> ChapterIds); public sealed record LegacyDownloadRequest(IReadOnlyCollection<string> Chapters);
+    public sealed record ProgressRequest(double Progress); 
+    public sealed record LegacyProgressRequest(string Chapter); 
+    public sealed record BookmarkRequest(int Page, string? Note); 
+    public sealed record EnabledRequest(bool Enabled); 
+    public sealed record FavoriteRequest(bool Favorite); 
+    public sealed record InstallRequest(string SourceId); 
+    public sealed record DownloadRequest(IReadOnlyCollection<string> ChapterIds); 
+    public sealed record LegacyDownloadRequest(IReadOnlyCollection<string> Chapters);
+    public sealed record SaveTrackerRequest(string TrackerName, string ExternalTrackingId, int LastSyncedChapter, string? Status, int? Score);
 }
