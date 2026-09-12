@@ -83,12 +83,12 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [ ] Library health integration.
 
 ## M8 — Unified dashboard
-- [ ] Continue Reading/Watching/Listening.
-- [ ] Recently Added.
-- [ ] Recently Played/Read.
-- [ ] Favorites across media.
-- [ ] Activity timeline.
-- [ ] Cross-media recommendations only from local catalogue unless provider explicitly enabled.
+- [x] Continue Reading/Watching/Listening.
+- [x] Recently Added.
+- [x] Recently Played/Read.
+- [x] Favorites across media.
+- [x] Activity timeline.
+- [x] Cross-media recommendations only from local catalogue unless provider explicitly enabled.
 
 ## M9 — Windows productization
 - [ ] Desktop wrapper.
