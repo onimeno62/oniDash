@@ -46,9 +46,9 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 
 ## M4 — Music completion
 - [x] Verify existing Music APIs against canonical platform contracts.
-- [ ] Fix remaining type/build issues.
+- [x] Fix remaining type/build issues.
 - [x] Library health and duplicate tooling.
-- [ ] ReplayGain/loudness metadata where supported.
+- [x] ReplayGain/loudness metadata where supported.
 - [x] Gapless/crossfade where technically supported.
 - [x] Media-key/Windows playback integration boundary.
 - [x] Complete lyrics/provider error handling.
@@ -57,19 +57,19 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Align Movies with scanner/indexer.
 - [x] Movie metadata/artwork enrichment.
 - [x] Watch-state/progress persistence.
-- [ ] Series/season/episode domain.
-- [ ] Anime-specific metadata as optional provider enrichment.
+- [x] Series/season/episode domain.
+- [x] Anime-specific metadata as optional provider enrichment.
 - [x] Continue-watching across movies/episodes.
 
 ## M6 — Manga platform
-- [ ] Replace temporary local adapter behavior with real plugin architecture.
-- [ ] Mihon/Suwayomi-compatible source/extension boundary.
-- [ ] Extension store/install/update management.
-- [ ] Source search/popular/latest.
-- [ ] Manga/chapter persistence.
-- [ ] Reading progress and bookmarks.
-- [ ] Download queue and offline storage.
-- [ ] Reader.
+- [x] Replace temporary local adapter behavior with real plugin architecture.
+- [x] Mihon/Suwayomi-compatible source/extension boundary.
+- [x] Extension store/install/update management.
+- [x] Source search/popular/latest.
+- [x] Manga/chapter persistence.
+- [x] Reading progress and bookmarks.
+- [x] Download queue and offline storage.
+- [x] Reader.
 - [ ] Library updates/notifications.
 - [ ] Tracking/sync as optional integrations.
 
