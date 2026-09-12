@@ -4,22 +4,17 @@ using oniDash.Movies.Domain;
 
 namespace oniDash.Movies.Persistence;
 
-/// <summary>Row anchor used only to declare the cross-catalogue foreign key in the model.</summary>
 public sealed class MediaItemAnchor
 {
     public Guid Id { get; set; }
 }
 
-/// <summary>
-/// The movie catalogue's own context. It shares the oniDash SQLite database with the
-/// core context but keeps its own migration history table, so the plugin owns its
-/// schema end to end (Architecture rule 2) without the core ever depending on it
-/// (rule 5). Cross-catalogue integrity is enforced at the database level: movies
-/// cascade with their media items.
-/// </summary>
 public sealed class MoviesDbContext(DbContextOptions<MoviesDbContext> options) : DbContext(options)
 {
     public DbSet<Movie> Movies => Set<Movie>();
+    public DbSet<TvSeries> TvSeries => Set<TvSeries>();
+    public DbSet<TvSeason> TvSeasons => Set<TvSeason>();
+    public DbSet<TvEpisode> TvEpisodes => Set<TvEpisode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,14 +27,35 @@ public sealed class MoviesDbContext(DbContextOptions<MoviesDbContext> options) :
             entity.Property(m => m.NormalizedTitle).HasMaxLength(512).IsRequired();
             entity.Property(m => m.Container).HasMaxLength(32);
             entity.Property(m => m.PosterContentType).HasMaxLength(128);
-            // One movie per media item: two files of the same title stay separate rows
-            // until duplicate detection arrives (docs/ROADMAP.md Phase 10).
             entity.HasIndex(m => m.MediaItemId).IsUnique();
             entity.HasIndex(m => new { m.LibraryId, m.NormalizedTitle });
-            entity.HasOne<MediaItemAnchor>()
-                .WithMany()
-                .HasForeignKey(m => m.MediaItemId)
-                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<MediaItemAnchor>().WithMany().HasForeignKey(m => m.MediaItemId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TvSeries>(entity =>
+        {
+            entity.ToTable("TvSeries");
+            entity.Property(x => x.Title).HasMaxLength(512).IsRequired();
+            entity.Property(x => x.NormalizedTitle).HasMaxLength(512).IsRequired();
+            entity.HasIndex(x => new { x.LibraryId, x.NormalizedTitle, x.Year }).IsUnique();
+        });
+
+        modelBuilder.Entity<TvSeason>(entity =>
+        {
+            entity.ToTable("TvSeasons");
+            entity.Property(x => x.Title).HasMaxLength(512);
+            entity.HasIndex(x => new { x.SeriesId, x.Number }).IsUnique();
+            entity.HasOne<TvSeries>().WithMany().HasForeignKey(x => x.SeriesId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TvEpisode>(entity =>
+        {
+            entity.ToTable("TvEpisodes");
+            entity.Property(x => x.Title).HasMaxLength(512).IsRequired();
+            entity.HasIndex(x => x.MediaItemId).IsUnique();
+            entity.HasIndex(x => new { x.SeasonId, x.Number }).IsUnique();
+            entity.HasOne<TvSeason>().WithMany().HasForeignKey(x => x.SeasonId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<MediaItemAnchor>().WithMany().HasForeignKey(x => x.MediaItemId).OnDelete(DeleteBehavior.Cascade);
         });
 
         base.OnModelCreating(modelBuilder);
