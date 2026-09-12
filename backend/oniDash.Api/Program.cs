@@ -8,6 +8,7 @@ using oniDash.Application.Health;
 using oniDash.Books;
 using oniDash.Infrastructure;
 using oniDash.Infrastructure.Persistence;
+using oniDash.Infrastructure.Windows;
 using oniDash.Manga;
 using oniDash.Manga.Persistence;
 using oniDash.Music;
@@ -20,8 +21,9 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.Wi
 builder.Services.AddRouting(options => options.LowercaseUrls = true).ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddInfrastructure(builder.Configuration); builder.Services.AddApplication(); builder.Services.AddCatalogueContracts(); builder.Services.AddMusic(builder.Configuration); builder.Services.AddMovies(builder.Configuration); builder.Services.AddBooks(); builder.Services.AddManga(builder.Configuration);
 builder.Services.AddSingleton<IAppVersionProvider, AssemblyAppVersionProvider>(); builder.Services.AddScoped<IHealthService, HealthService>();
+builder.Services.AddSingleton<IWindowsProductService, WindowsProductService>();
 var app = builder.Build(); app.UseCors();
-app.MapHealthEndpoints(); app.MapCatalogueContractEndpoints(); app.MapLibraryEndpoints(); app.MapTagEndpoints(); app.MapCollectionEndpoints(); app.MapScanEndpoints(); app.MapSearchEndpoints(); app.MapMusicEndpoints(); app.MapMovieEndpoints(); app.MapBooksEndpoints(); app.MapMangaPluginEndpoints(); app.MapDashboardEndpoints();
+app.MapHealthEndpoints(); app.MapCatalogueContractEndpoints(); app.MapLibraryEndpoints(); app.MapTagEndpoints(); app.MapCollectionEndpoints(); app.MapScanEndpoints(); app.MapSearchEndpoints(); app.MapMusicEndpoints(); app.MapMovieEndpoints(); app.MapBooksEndpoints(); app.MapMangaPluginEndpoints(); app.MapDashboardEndpoints(); app.MapPlatformEndpoints();
 var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"); var spaIndex = Path.Combine(webRoot, "index.html");
 if (File.Exists(spaIndex)) { app.UseDefaultFiles(); app.UseStaticFiles(); app.MapFallbackToFile("index.html"); }
 try { using var scope = app.Services.CreateScope(); await scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>().InitializeAsync().ConfigureAwait(false); } catch (Exception ex) { app.Logger.LogError(ex, "Database initialization failed"); }
