@@ -1,14 +1,16 @@
 using Microsoft.Extensions.DependencyInjection;
-using oniDash.Application.Media;
 using oniDash.Books.Metadata;
+using oniDash.Books.Reader;
+using oniDash.Core.Contracts;
 
 namespace oniDash.Books;
+
 public static class BooksServiceCollectionExtensions
 {
-    public static IServiceCollection AddBooks(this IServiceCollection services)
+    public static IServiceCollection AddBooksServices(this IServiceCollection services)
     {
-        services.AddScoped<IBookDocumentMetadataReader, LocalBookDocumentMetadataReader>();
-        services.AddScoped<IMediaHandler, BookMediaHandler>();
+        services.AddSingleton<IMediaHandler, BookMediaHandler>();
+        services.AddSingleton<IBookReaderService, LocalBookReaderService>();
         return services;
     }
 }

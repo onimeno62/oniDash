@@ -3,10 +3,13 @@ using oniDash.Api.Endpoints;
 using oniDash.Api.Services;
 using oniDash.Application;
 using oniDash.Application.Abstractions;
+using oniDash.Application.Catalogue;
 using oniDash.Application.Health;
 using oniDash.Books;
 using oniDash.Infrastructure;
 using oniDash.Infrastructure.Persistence;
+using oniDash.Manga;
+using oniDash.Manga.Persistence;
 using oniDash.Music;
 using oniDash.Music.Persistence;
 using oniDash.Movies;
@@ -26,9 +29,11 @@ builder.Services
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddCatalogueContracts();
 builder.Services.AddMusic(builder.Configuration);
 builder.Services.AddMovies(builder.Configuration);
 builder.Services.AddBooks();
+builder.Services.AddManga(builder.Configuration);
 
 builder.Services.AddSingleton<IAppVersionProvider, AssemblyAppVersionProvider>();
 builder.Services.AddScoped<IHealthService, HealthService>();
@@ -37,6 +42,7 @@ var app = builder.Build();
 app.UseCors();
 
 app.MapHealthEndpoints();
+app.MapCatalogueContractEndpoints();
 app.MapLibraryEndpoints();
 app.MapTagEndpoints();
 app.MapCollectionEndpoints();
@@ -45,7 +51,8 @@ app.MapSearchEndpoints();
 app.MapMusicEndpoints();
 app.MapMovieEndpoints();
 app.MapBooksEndpoints();
-app.MapMangaEndpoints();
+app.MapMangaPluginEndpoints();
+app.MapDashboardEndpoints();
 
 // API endpoints are registered before the SPA fallback so an unmatched /api/* request
 // cannot be satisfied by index.html. This keeps API clients on JSON/error semantics and
@@ -93,6 +100,16 @@ try
 catch (Exception ex)
 {
     app.Logger.LogError(ex, "Movie catalogue initialization failed; movie endpoints may be unavailable");
+}
+
+try
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<MangaDatabaseInitializer>().InitializeAsync().ConfigureAwait(false);
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Manga catalogue initialization failed; manga endpoints may be unavailable");
 }
 
 app.Run();
