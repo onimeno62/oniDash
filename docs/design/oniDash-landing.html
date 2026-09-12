@@ -3,463 +3,115 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#090b0f">
+  <meta name="theme-color" content="#08090c">
   <meta name="description" content="oniDash — a local-first media library for music, movies, anime, manga and books.">
-  <title>oniDash — Your media, one beautiful library</title>
+  <title>oniDash — Your media, in one place</title>
   <style>
-    :root {
-      --bg: #090b0f;
-      --bg-soft: #0d1016;
-      --surface: #11151c;
-      --surface-2: #151a22;
-      --surface-3: #1a202a;
-      --line: #242a35;
-      --line-soft: #1b2029;
-      --text: #f3f4f6;
-      --text-2: #c5cad3;
-      --muted: #858e9d;
-      --faint: #5f6878;
-      --accent: #8b7cf6;
-      --accent-2: #7162e8;
-      --good: #5acb91;
-      --radius: 18px;
-      --max: 1180px;
-      --shadow: 0 30px 80px rgba(0,0,0,.32);
-    }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; background: var(--bg); }
-    body {
-      margin: 0;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 76% 5%, rgba(139,124,246,.075), transparent 27rem),
-        radial-gradient(circle at 12% 30%, rgba(86,105,154,.035), transparent 25rem),
-        var(--bg);
-      font: 400 15px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: inherit; text-decoration: none; }
-    button { font: inherit; }
-    ::selection { background: rgba(139,124,246,.28); }
-
-    .container { width: min(calc(100% - 40px), var(--max)); margin-inline: auto; }
-    .eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      color: #9a92ed; font-size: 11px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase;
-    }
-    .eyebrow::before { content: ""; width: 18px; height: 1px; background: var(--accent); opacity: .8; }
-
-    /* Header */
-    header {
-      position: sticky; top: 0; z-index: 20;
-      border-bottom: 1px solid rgba(36,42,53,.72);
-      background: rgba(9,11,15,.82);
-      backdrop-filter: blur(18px);
-    }
-    .nav { height: 70px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
-    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 760; letter-spacing: -.035em; }
-    .brand-mark {
-      width: 29px; height: 29px; display: grid; place-items: center;
-      border: 1px solid #3a4050; border-radius: 9px; background: #151922;
-      color: #f5f5f7; font-size: 14px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
-    }
-    .nav-links { display: flex; align-items: center; gap: 27px; margin-left: auto; }
-    .nav-links a { color: var(--muted); font-size: 12px; transition: color .18s ease; }
-    .nav-links a:hover { color: var(--text); }
-    .nav-actions { display: flex; align-items: center; gap: 9px; }
-    .nav-github { color: var(--text-2); font-size: 12px; }
-    .button {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      min-height: 39px; padding: 0 15px; border: 1px solid var(--line); border-radius: 9px;
-      color: var(--text); background: var(--surface-2); font-size: 12px; font-weight: 680;
-      transition: transform .18s ease, border-color .18s ease, background .18s ease;
-    }
-    .button:hover { transform: translateY(-1px); border-color: #3b4250; background: var(--surface-3); }
-    .button.primary { background: var(--accent-2); border-color: var(--accent-2); box-shadow: 0 8px 25px rgba(113,98,232,.18); }
-    .button.primary:hover { background: #7b6df0; border-color: #7b6df0; }
-    .button.large { min-height: 46px; padding-inline: 18px; }
-    .mobile-toggle { display:none; }
-
-    /* Hero */
-    .hero { padding: 104px 0 78px; }
-    .hero-grid { display: grid; grid-template-columns: 1.03fr .97fr; align-items: center; gap: 72px; }
-    h1 {
-      margin: 17px 0 20px; max-width: 690px;
-      font-size: clamp(48px, 6.2vw, 78px); line-height: .98; letter-spacing: -.065em; font-weight: 760;
-    }
-    h1 em { color: #a69df4; font-style: normal; }
-    .hero-copy > p { max-width: 575px; margin: 0; color: var(--text-2); font-size: 16px; line-height: 1.75; }
-    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
-    .hero-note { margin-top: 18px; color: var(--faint); font-size: 11px; }
-
-    /* Product window: real HTML, not an image */
-    .product-window {
-      position: relative; border: 1px solid #2b313d; border-radius: 17px; overflow: hidden;
-      background: #0d1015; box-shadow: var(--shadow); transform: perspective(1400px) rotateY(-3deg) rotateX(1deg);
-    }
-    .product-window::after { content:""; position:absolute; inset:0; pointer-events:none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.02); }
-    .window-bar { height: 38px; display:flex; align-items:center; gap:7px; padding:0 13px; border-bottom:1px solid #222832; background:#10131a; }
-    .dot { width:7px; height:7px; border-radius:50%; background:#373e4b; }
-    .window-title { margin-left:8px; color:#727b8a; font-size:9px; letter-spacing:.02em; }
-    .window-body { display:grid; grid-template-columns: 126px 1fr; min-height: 370px; }
-    .window-side { padding:15px 10px; border-right:1px solid #202630; background:#0b0e13; }
-    .mini-brand { display:flex; align-items:center; gap:7px; padding:3px 7px 20px; font-size:10px; font-weight:700; }
-    .mini-mark { width:18px;height:18px;border:1px solid #3a4050;border-radius:5px;display:grid;place-items:center;font-size:8px;background:#171b24; }
-    .mini-label { padding:0 7px 7px; color:#586171; font-size:7px; text-transform:uppercase; letter-spacing:.13em; font-weight:700; }
-    .mini-nav { display:grid; gap:2px; }
-    .mini-nav div { padding:7px; border-radius:6px; color:#777f8d; font-size:8px; }
-    .mini-nav div.active { color:#f2f3f6; background:#191d27; box-shadow:inset 2px 0 0 var(--accent); }
-    .window-main { padding:20px; min-width:0; }
-    .mini-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:17px; }
-    .mini-search { width:160px; height:23px; padding:0 8px; display:flex;align-items:center; color:#5d6675; border:1px solid #252c37;border-radius:5px;background:#10141a;font-size:7px; }
-    .mini-avatar { width:19px;height:19px;border:1px solid #373e4b;border-radius:50%;display:grid;place-items:center;color:#8992a1;font-size:6px; }
-    .mini-eyebrow { color:#777f8f;font-size:7px;text-transform:uppercase;letter-spacing:.12em;font-weight:700; }
-    .mini-title { margin-top:4px; font-size:19px; letter-spacing:-.04em; font-weight:700; }
-    .mini-sub { color:#6f7887; font-size:8px; margin-top:3px; }
-    .mini-hero { display:grid;grid-template-columns:1.25fr .75fr; margin-top:15px;border:1px solid #282f3a;border-radius:9px;overflow:hidden;background:#151922; }
-    .mini-hero-copy { padding:15px; }
-    .mini-hero h3 { margin:4px 0 5px;font-size:12px;letter-spacing:-.025em; }
-    .mini-hero p { margin:0;color:#747d8b;font-size:7px;line-height:1.6; }
-    .mini-pill { display:inline-flex;margin-top:10px;padding:5px 8px;border-radius:5px;background:#7566e9;color:#fff;font-size:7px;font-weight:700; }
-    .mini-art { min-height:118px;background:linear-gradient(140deg,#242838,#171a23 60%,#10131a);position:relative; }
-    .mini-art::before { content:"";position:absolute;inset:18px;border:1px solid #41485a;border-radius:7px;transform:rotate(-5deg); }
-    .mini-section { margin-top:16px; display:flex;justify-content:space-between;align-items:center; }
-    .mini-section strong { font-size:9px; }
-    .mini-section span { color:#7e72df;font-size:7px; }
-    .mini-cards { display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:9px; }
-    .mini-card-cover { aspect-ratio:1;border:1px solid #282f3a;border-radius:6px;background:#181d26;position:relative;overflow:hidden; }
-    .mini-card-cover::after { content:"";position:absolute;inset:17%;border:1px solid #424a5a;border-radius:5px;transform:rotate(-6deg); }
-    .mini-card-title { margin-top:5px; font-size:7px; white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-    .mini-card-meta { margin-top:2px;color:#687181;font-size:6px; }
-
-    /* Trust / categories */
-    .rule { height:1px; background:var(--line-soft); }
-    .category-strip { padding: 25px 0; display:grid; grid-template-columns: repeat(5,1fr); border-bottom:1px solid var(--line-soft); border-top:1px solid var(--line-soft); }
-    .category { display:flex; align-items:center; justify-content:center; gap:9px; color:#8a93a2; font-size:11px; border-right:1px solid var(--line-soft); }
-    .category:last-child { border-right:0; }
-    .category b { color:#c6cbd4; font-size:13px; font-weight:650; }
-
-    /* Sections */
-    section { scroll-margin-top:90px; }
-    .section { padding: 112px 0; }
-    .section-heading { max-width: 650px; margin-bottom: 44px; }
-    .section-heading h2 { margin:12px 0 12px; font-size:clamp(30px,4vw,48px);line-height:1.05;letter-spacing:-.05em; }
-    .section-heading p { margin:0;color:var(--muted);line-height:1.75; }
-
-    .feature-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--line); }
-    .feature { min-height:235px;padding:28px;background:var(--surface); }
-    .feature:nth-child(2n) { background:#10141b; }
-    .feature-icon { width:34px;height:34px;display:grid;place-items:center;border:1px solid #2e3542;border-radius:9px;background:#151a22;color:#a59cf2;font-size:13px;margin-bottom:25px; }
-    .feature h3 { margin:0 0 8px;font-size:14px;letter-spacing:-.015em; }
-    .feature p { margin:0;color:var(--muted);font-size:12px;line-height:1.7; }
-
-    /* Editorial product rows */
-    .showcase { display:grid;grid-template-columns:.78fr 1.22fr;gap:72px;align-items:center;margin-top:90px; }
-    .showcase.reverse { grid-template-columns:1.22fr .78fr; }
-    .showcase.reverse .showcase-copy { order:2; }
-    .showcase h3 { margin:12px 0 12px;font-size:30px;line-height:1.08;letter-spacing:-.045em; }
-    .showcase-copy p { color:var(--muted);line-height:1.8;font-size:13px; }
-    .showcase-list { display:grid;gap:10px;margin-top:23px; }
-    .showcase-list div { display:flex;gap:10px;color:#aeb5c0;font-size:12px; }
-    .check { color:var(--good);font-size:11px;margin-top:2px; }
-
-    .detail-card { border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:15px;box-shadow:0 20px 55px rgba(0,0,0,.2); }
-    .detail-head { display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line-soft);padding:3px 4px 13px; }
-    .detail-head strong { font-size:11px; }
-    .detail-head span { color:#747d8b;font-size:9px; }
-    .detail-grid { display:grid;grid-template-columns:120px 1fr;gap:18px;padding:17px 4px 4px; }
-    .detail-cover { aspect-ratio:1;border-radius:10px;border:1px solid #313847;background:linear-gradient(145deg,#252a39,#161922);position:relative;overflow:hidden; }
-    .detail-cover::before { content:"";position:absolute;inset:19%;border:1px solid #4b5364;border-radius:8px;transform:rotate(-8deg); }
-    .detail-cover::after { content:"MUSIC";position:absolute;left:11px;bottom:10px;color:#dce0e7;font-size:8px;letter-spacing:.12em;font-weight:700; }
-    .detail-info h4 { margin:2px 0 4px;font-size:18px;letter-spacing:-.035em; }
-    .detail-info p { margin:0;color:#737c8b;font-size:9px; }
-    .meta-lines { display:grid;gap:7px;margin-top:17px; }
-    .meta-line { display:flex;justify-content:space-between;border-bottom:1px solid #1e242d;padding-bottom:6px;color:#6f7887;font-size:8px; }
-    .meta-line b { color:#b9bec8;font-weight:600; }
-    .tag-row { display:flex;gap:5px;margin-top:13px; }
-    .tag { padding:4px 6px;border:1px solid #303744;border-radius:5px;color:#8f98a8;background:#13171e;font-size:7px; }
-
-    .queue-card { border:1px solid var(--line);border-radius:16px;background:#10141a;overflow:hidden; }
-    .queue-top { display:flex;justify-content:space-between;padding:15px 17px;border-bottom:1px solid var(--line);font-size:10px; }
-    .queue-top span { color:#737c8b; }
-    .queue-row { display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:12px 17px;border-bottom:1px solid #1d232c; }
-    .queue-row:last-child { border-bottom:0; }
-    .q-art { width:24px;height:24px;border-radius:5px;border:1px solid #303744;background:#1a1f28;display:grid;place-items:center;color:#929baa;font-size:7px; }
-    .queue-row strong { display:block;font-size:9px; }
-    .queue-row small { display:block;color:#687181;font-size:7px;margin-top:2px; }
-    .queue-time { color:#697282;font-size:8px; }
-
-    /* Philosophy */
-    .philosophy { padding: 40px 0 115px; }
-    .philosophy-inner { border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:68px 0;display:grid;grid-template-columns:.65fr 1.35fr;gap:80px; }
-    .philosophy h2 { margin:0;font-size:31px;line-height:1.08;letter-spacing:-.045em; }
-    .principles { display:grid;grid-template-columns:1fr 1fr;gap:28px 45px; }
-    .principle { padding-top:13px;border-top:1px solid var(--line-soft); }
-    .principle strong { display:block;font-size:12px;margin-bottom:5px; }
-    .principle p { margin:0;color:var(--muted);font-size:11px;line-height:1.7; }
-
-    /* CTA */
-    .cta { padding:0 0 105px; }
-    .cta-box { position:relative;overflow:hidden;border:1px solid #303645;border-radius:19px;padding:60px;text-align:center;background:linear-gradient(135deg,#151922,#10141b 65%,#11151d); }
-    .cta-box::before { content:"";position:absolute;width:400px;height:400px;border:1px solid rgba(139,124,246,.11);border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%); }
-    .cta-box > * { position:relative;z-index:1; }
-    .cta-box h2 { margin:12px auto 12px;font-size:clamp(30px,4vw,46px);line-height:1.04;letter-spacing:-.05em; }
-    .cta-box p { max-width:570px;margin:0 auto;color:var(--muted);font-size:13px; }
-    .cta-actions { display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:26px; }
-
-    /* Footer */
-    footer { border-top:1px solid var(--line);padding:28px 0 35px; }
-    .footer-inner { display:flex;align-items:center;justify-content:space-between;gap:20px; }
-    .footer-copy { color:#687181;font-size:10px; }
-    .footer-links { display:flex;gap:18px; }
-    .footer-links a { color:#747d8b;font-size:10px; }
-    .footer-links a:hover { color:#c0c5ce; }
-
-    @media (max-width: 900px) {
-      .nav-links { display:none; }
-      .hero-grid,.showcase,.showcase.reverse,.philosophy-inner { grid-template-columns:1fr; }
-      .showcase.reverse .showcase-copy { order:0; }
-      .product-window { transform:none; }
-      .feature-grid { grid-template-columns:1fr 1fr; }
-      .showcase { gap:35px; }
-      .philosophy-inner { gap:40px; }
-    }
-    @media (max-width: 640px) {
-      .container { width:min(calc(100% - 28px),var(--max)); }
-      .nav { height:62px; }
-      .nav-github { display:none; }
-      .hero { padding:72px 0 55px; }
-      h1 { font-size:47px; }
-      .hero-copy > p { font-size:14px; }
-      .category-strip { grid-template-columns:1fr 1fr; gap:0; }
-      .category { padding:12px 0;border-right:0; }
-      .section { padding:78px 0; }
-      .feature-grid { grid-template-columns:1fr; }
-      .feature { min-height:0; }
-      .window-body { grid-template-columns:84px 1fr;min-height:280px; }
-      .window-side { padding-inline:7px; }
-      .mini-nav div { font-size:7px; }
-      .window-main { padding:12px; }
-      .mini-search { width:110px; }
-      .mini-title { font-size:15px; }
-      .mini-hero { grid-template-columns:1fr; }
-      .mini-art { display:none; }
-      .mini-cards { grid-template-columns:repeat(2,1fr); }
-      .detail-grid { grid-template-columns:90px 1fr; }
-      .principles { grid-template-columns:1fr; }
-      .cta-box { padding:45px 20px; }
-      .footer-inner { align-items:flex-start;flex-direction:column; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior:auto; }
-      *,*::before,*::after { transition:none !important; animation:none !important; }
-    }
+    :root{--bg:#08090c;--panel:#0e1015;--panel2:#12151c;--line:#222630;--line2:#181b22;--text:#f3f4f6;--soft:#c4c8d0;--muted:#818897;--faint:#596171;--accent:#8b7cf6;--accent2:#7566e9;--green:#5bc890;--max:1160px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button{font:inherit}::selection{background:#8b7cf633}
+    .wrap{width:min(calc(100% - 40px),var(--max));margin:auto}.eyebrow{display:flex;align-items:center;gap:9px;color:#a39bf2;font-size:10px;font-weight:750;letter-spacing:.16em;text-transform:uppercase}.eyebrow:before{content:"";width:20px;height:1px;background:var(--accent)}
+    header{position:sticky;top:0;z-index:20;border-bottom:1px solid #222630b8;background:#08090cd9;backdrop-filter:blur(18px)}.nav{height:68px;display:flex;align-items:center;gap:30px}.brand{display:flex;align-items:center;gap:10px;font-weight:760;letter-spacing:-.04em}.mark{width:29px;height:29px;display:grid;place-items:center;border:1px solid #3a4050;border-radius:8px;background:#14171e;font-size:14px}.links{display:flex;gap:27px;margin-left:auto}.links a{font-size:12px;color:var(--muted)}.links a:hover{color:var(--text)}.nav-cta{display:inline-flex;align-items:center;justify-content:center;height:37px;padding:0 14px;border:1px solid #313744;border-radius:8px;background:#151820;font-size:11px;font-weight:700}.nav-cta:hover{border-color:#555d6c}
+    .hero{padding:105px 0 88px;border-bottom:1px solid var(--line2)}.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}.hero h1{max-width:680px;margin:17px 0 22px;font-size:clamp(48px,6.3vw,78px);line-height:.97;letter-spacing:-.07em;font-weight:760}.hero h1 span{color:#a39bf2}.hero-copy>p{max-width:560px;margin:0;color:var(--soft);font-size:16px;line-height:1.75}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:30px}.btn{display:inline-flex;align-items:center;gap:8px;height:45px;padding:0 17px;border:1px solid #2d333f;border-radius:9px;background:#13161d;font-size:12px;font-weight:700}.btn:hover{border-color:#48505f;background:#181c24}.btn.primary{border-color:var(--accent2);background:var(--accent2);box-shadow:0 12px 30px #7566e91f}.btn.primary:hover{background:#8072ef}.hero-note{margin-top:17px;color:var(--faint);font-size:10px}
+    /* CSS product illustration — no external image/assets */
+    .window{border:1px solid #2a303b;border-radius:15px;overflow:hidden;background:#0d1015;box-shadow:0 35px 90px #00000055;transform:perspective(1400px) rotateY(-4deg)}.bar{height:34px;display:flex;align-items:center;gap:6px;padding:0 12px;border-bottom:1px solid #20252e;background:#10131a}.dot{width:6px;height:6px;border-radius:50%;background:#3a414d}.bar span{margin-left:8px;color:#687180;font-size:8px}.screen{display:grid;grid-template-columns:104px 1fr;min-height:330px}.side{padding:15px 9px;background:#0b0e13;border-right:1px solid #20252e}.side-brand{display:flex;gap:6px;align-items:center;padding:2px 6px 18px;font-size:9px;font-weight:700}.side-mark{width:17px;height:17px;border:1px solid #3b4250;border-radius:5px;display:grid;place-items:center;background:#171a22;font-size:7px}.side-label{padding:0 6px 6px;color:#525b6b;font-size:6px;text-transform:uppercase;letter-spacing:.13em;font-weight:700}.side-nav{display:grid;gap:2px}.side-nav div{padding:6px;color:#747d8c;border-radius:5px;font-size:7px}.side-nav .active{color:#f1f2f4;background:#191d27;box-shadow:inset 2px 0 var(--accent)}.dash{padding:17px;min-width:0}.dash-top{height:21px;display:flex;justify-content:space-between;align-items:center}.search{width:135px;height:20px;border:1px solid #252b35;border-radius:5px;color:#596273;padding:0 7px;display:flex;align-items:center;font-size:6px}.avatar{width:17px;height:17px;border:1px solid #343b47;border-radius:50%;display:grid;place-items:center;color:#7c8594;font-size:5px}.dash-title{margin-top:18px;color:#70798a;font-size:6px;text-transform:uppercase;letter-spacing:.12em;font-weight:700}.dash h2{margin:4px 0 3px;font-size:18px;letter-spacing:-.05em}.dash-sub{color:#697283;font-size:7px}.resume{display:grid;grid-template-columns:1.25fr .75fr;margin-top:14px;border:1px solid #292f3a;border-radius:8px;overflow:hidden;background:#151922}.resume-copy{padding:13px}.resume-copy small{color:#8b81eb;font-size:6px;text-transform:uppercase;letter-spacing:.1em}.resume-copy h3{margin:5px 0;font-size:10px}.resume-copy p{margin:0;color:#727b89;font-size:6px}.resume-btn{display:inline-flex;margin-top:8px;padding:5px 7px;border-radius:4px;background:#7566e9;color:#fff;font-size:6px;font-weight:700}.art{min-height:103px;background:linear-gradient(135deg,#252a39,#171a22 60%,#101319);position:relative}.art:after{content:"";position:absolute;inset:17px;border:1px solid #454d5d;border-radius:6px;transform:rotate(-6deg)}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:13px}.card-cover{aspect-ratio:1;border:1px solid #292f3a;border-radius:5px;background:#181d26;position:relative}.card-cover:after{content:"";position:absolute;inset:18%;border:1px solid #424a5a;border-radius:4px;transform:rotate(-6deg)}.card-name{margin-top:4px;font-size:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-meta{margin-top:2px;color:#626c7b;font-size:5px}
+    .media-strip{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line2)}.media-item{padding:24px 10px;text-align:center;border-right:1px solid var(--line2);color:#818998;font-size:11px}.media-item:last-child{border:0}.media-item b{display:block;margin-bottom:4px;color:#c9cdd5;font-size:13px;font-weight:650}
+    section{scroll-margin-top:90px}.section{padding:105px 0}.intro{max-width:650px;margin-bottom:42px}.intro h2{margin:12px 0;font-size:clamp(32px,4vw,49px);line-height:1.04;letter-spacing:-.055em}.intro p{margin:0;color:var(--muted);line-height:1.8}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--line)}.feature{min-height:220px;padding:27px;background:var(--panel)}.feature:nth-child(even){background:#101319}.icon{width:32px;height:32px;display:grid;place-items:center;margin-bottom:27px;border:1px solid #2d3440;border-radius:8px;background:#151920;color:#a29af0;font-size:12px}.feature h3{margin:0 0 8px;font-size:14px;letter-spacing:-.015em}.feature p{margin:0;color:var(--muted);font-size:12px;line-height:1.75}
+    .split{display:grid;grid-template-columns:.8fr 1.2fr;gap:80px;align-items:start}.split h2{margin:12px 0;font-size:clamp(30px,4vw,47px);line-height:1.05;letter-spacing:-.055em}.split>div>p{color:var(--muted);font-size:13px;line-height:1.8}.principles{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}.principle{padding:20px 0;border-bottom:1px solid var(--line);padding-right:25px}.principle:nth-child(odd){border-right:1px solid var(--line);padding-right:25px}.principle:nth-child(even){padding-left:25px}.principle strong{font-size:12px}.principle p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.65}
+    .code-section{padding-top:0}.code-card{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}.code-copy{padding:35px}.code-copy h2{margin:10px 0;font-size:31px;line-height:1.08;letter-spacing:-.05em}.code-copy p{color:var(--muted);font-size:12px;line-height:1.75}.stack{padding:28px;border-left:1px solid var(--line);font:11px/2 "SFMono-Regular",Consolas,monospace;color:#aeb4bf;background:#0b0d12}.stack .dim{color:#626b7a}.stack .accent{color:#a198ef}
+    .cta{padding:35px 0 105px}.cta-box{padding:64px 50px;border:1px solid #2b303b;border-radius:16px;background:linear-gradient(135deg,#12151d,#0d1015);text-align:center}.cta-box .eyebrow{justify-content:center}.cta-box h2{max-width:700px;margin:13px auto;font-size:clamp(32px,4vw,51px);line-height:1.03;letter-spacing:-.055em}.cta-box p{max-width:590px;margin:0 auto;color:var(--muted);font-size:13px;line-height:1.8}.cta-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:28px}
+    footer{border-top:1px solid var(--line2);padding:25px 0 35px;color:#626b79;font-size:10px}.footer-inner{display:flex;justify-content:space-between;gap:20px}.footer-links{display:flex;gap:20px}.footer-links a:hover{color:var(--soft)}
+    @media(max-width:850px){.links{display:none}.hero-grid,.split,.code-card{grid-template-columns:1fr}.hero{padding-top:75px}.window{transform:none}.screen{min-height:300px}.stack{border-left:0;border-top:1px solid var(--line)}.features{grid-template-columns:1fr 1fr}.media-strip{grid-template-columns:repeat(3,1fr)}.media-item:nth-child(3){border-right:0}.media-item:nth-child(-n+3){border-bottom:1px solid var(--line2)}}
+    @media(max-width:560px){.wrap{width:min(calc(100% - 28px),var(--max))}.nav{height:60px}.nav-cta{margin-left:auto}.hero{padding:65px 0}.hero h1{font-size:48px}.features{grid-template-columns:1fr}.media-strip{grid-template-columns:1fr 1fr}.media-item{border-bottom:1px solid var(--line2)}.media-item:nth-child(odd){border-right:1px solid var(--line2)}.media-item:nth-child(even){border-right:0}.split{gap:40px}.principles{grid-template-columns:1fr}.principle,.principle:nth-child(even),.principle:nth-child(odd){border-right:0;padding:17px 0}.cta-box{padding:42px 22px}.footer-inner{flex-direction:column}.screen{grid-template-columns:78px 1fr}.side-nav div{font-size:6px}.dash{padding:12px}.resume{grid-template-columns:1fr}.art{display:none}.cards{grid-template-columns:repeat(3,1fr)}}
   </style>
 </head>
 <body>
   <header>
-    <div class="container nav">
-      <a class="brand" href="#top" aria-label="oniDash home">
-        <span class="brand-mark">o</span><span>oniDash</span>
-      </a>
-      <nav class="nav-links" aria-label="Primary navigation">
-        <a href="#features">Features</a>
-        <a href="#experience">Experience</a>
-        <a href="#principles">Principles</a>
-        <a href="https://github.com/onimeno62/oniDash">GitHub</a>
-      </nav>
-      <div class="nav-actions">
-        <a class="nav-github" href="https://github.com/onimeno62/oniDash">View source</a>
-        <a class="button primary" href="https://github.com/onimeno62/oniDash">Get oniDash <span aria-hidden="true">↗</span></a>
-      </div>
-    </div>
+    <nav class="nav wrap" aria-label="Primary navigation">
+      <a class="brand" href="#top"><span class="mark">o</span><span>oniDash</span></a>
+      <div class="links"><a href="#features">Features</a><a href="#experience">Experience</a><a href="#principles">Principles</a><a href="#stack">Architecture</a></div>
+      <a class="nav-cta" href="https://github.com/onimeno62/oniDash">View on GitHub ↗</a>
+    </nav>
   </header>
 
   <main id="top">
     <section class="hero">
-      <div class="container hero-grid">
+      <div class="wrap hero-grid">
         <div class="hero-copy">
           <span class="eyebrow">Your media. Your machine.</span>
-          <h1>One library for <em>everything</em> you keep.</h1>
-          <p>oniDash is a local-first media library for Windows. Organize music, movies, anime, manga and books in one considered workspace — with metadata, search, playback, progress and collections built around your files.</p>
-          <div class="hero-actions">
-            <a class="button primary large" href="https://github.com/onimeno62/oniDash">Explore on GitHub <span>↗</span></a>
-            <a class="button large" href="#experience">See the experience <span>↓</span></a>
-          </div>
-          <div class="hero-note">Open source · Local-first · Windows-focused · No cloud catalogue required</div>
+          <h1>One home for everything you <span>watch, read and listen to.</span></h1>
+          <p>oniDash is a local-first media library for your personal collection — music, movies, anime, manga and books, brought together in one focused desktop experience.</p>
+          <div class="actions"><a class="btn primary" href="https://github.com/onimeno62/oniDash">Get oniDash ↗</a><a class="btn" href="#features">Explore the project ↓</a></div>
+          <div class="hero-note">Open source · Local-first · Built for Windows</div>
         </div>
-
-        <div class="product-window" aria-label="oniDash application preview">
-          <div class="window-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="window-title">oniDash · Library</span></div>
-          <div class="window-body">
-            <aside class="window-side">
-              <div class="mini-brand"><span class="mini-mark">o</span> oniDash</div>
-              <div class="mini-label">Workspace</div>
-              <div class="mini-nav">
-                <div class="active">⌂ &nbsp; Overview</div>
-                <div>▦ &nbsp; Library</div>
-                <div>♫ &nbsp; Music</div>
-                <div>▶ &nbsp; Movies</div>
-                <div>▤ &nbsp; Manga</div>
-                <div>▥ &nbsp; Books</div>
-              </div>
-              <div class="mini-label" style="margin-top:17px">System</div>
-              <div class="mini-nav"><div>⌕ &nbsp; Search</div><div>⚙ &nbsp; Settings</div></div>
-            </aside>
-            <div class="window-main">
-              <div class="mini-top"><div class="mini-search">⌕ &nbsp; Search your library…</div><div class="mini-avatar">OM</div></div>
-              <div class="mini-eyebrow">Your library</div>
-              <div class="mini-title">Good evening.</div>
-              <div class="mini-sub">A quiet place for everything you watch, read and listen to.</div>
-              <div class="mini-hero">
-                <div class="mini-hero-copy"><div class="mini-eyebrow">Continue listening</div><h3>Selected Ambient Works 85–92</h3><p>Aphex Twin · 1992 · Electronic</p><span class="mini-pill">▶ Resume</span></div>
-                <div class="mini-art"></div>
-              </div>
-              <div class="mini-section"><strong>Recently added</strong><span>View all</span></div>
-              <div class="mini-cards">
-                <div><div class="mini-card-cover"></div><div class="mini-card-title">Night Drive</div><div class="mini-card-meta">Music</div></div>
-                <div><div class="mini-card-cover"></div><div class="mini-card-title">Drive</div><div class="mini-card-meta">Movie</div></div>
-                <div><div class="mini-card-cover"></div><div class="mini-card-title">Vagabond</div><div class="mini-card-meta">Manga</div></div>
-                <div><div class="mini-card-cover"></div><div class="mini-card-title">Project Hail Mary</div><div class="mini-card-meta">Book</div></div>
-              </div>
-            </div>
+        <div class="window" aria-label="Illustration of the oniDash application interface">
+          <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>oniDash</span></div>
+          <div class="screen">
+            <aside class="side"><div class="side-brand"><span class="side-mark">o</span>oniDash</div><div class="side-label">Workspace</div><div class="side-nav"><div class="active">Overview</div><div>Library</div><div>Music</div><div>Movies</div><div>Manga</div><div>Books</div></div><div class="side-label" style="margin-top:18px">System</div><div class="side-nav"><div>Search</div><div>Settings</div></div></aside>
+            <div class="dash"><div class="dash-top"><div class="search">⌕ &nbsp; Search your library</div><div class="avatar">O</div></div><div class="dash-title">Your library</div><h2>Good evening.</h2><div class="dash-sub">Everything you watch, read and listen to.</div><div class="resume"><div class="resume-copy"><small>Continue listening</small><h3>Selected Ambient Works 85–92</h3><p>Aphex Twin · Track 07 of 11</p><span class="resume-btn">▶ Resume</span></div><div class="art"></div></div><div class="cards"><div><div class="card-cover"></div><div class="card-name">Night Drive</div><div class="card-meta">Music</div></div><div><div class="card-cover"></div><div class="card-name">Drive</div><div class="card-meta">Movie</div></div><div><div class="card-cover"></div><div class="card-name">Vagabond</div><div class="card-meta">Manga</div></div><div><div class="card-cover"></div><div class="card-name">Hail Mary</div><div class="card-meta">Book</div></div></div></div>
           </div>
         </div>
       </div>
     </section>
 
-    <div class="container">
-      <div class="category-strip" aria-label="Supported media types">
-        <div class="category"><b>♫</b> Music</div>
-        <div class="category"><b>▶</b> Movies</div>
-        <div class="category"><b>▤</b> Anime</div>
-        <div class="category"><b>▥</b> Manga</div>
-        <div class="category"><b>▧</b> Books</div>
-      </div>
-    </div>
+    <div class="media-strip wrap" aria-label="Supported media types"><div class="media-item"><b>♫</b>Music</div><div class="media-item"><b>▣</b>Movies</div><div class="media-item"><b>◇</b>Anime</div><div class="media-item"><b>▤</b>Manga</div><div class="media-item"><b>▥</b>Books</div></div>
 
     <section class="section" id="features">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Built for a real library</span>
-          <h2>Everything important. Nothing pretending to be important.</h2>
-          <p>oniDash focuses on the work a personal media library actually needs: discovering what you own, keeping it organized, and making it pleasant to use every day.</p>
-        </div>
-        <div class="feature-grid">
-          <article class="feature"><div class="feature-icon">⌕</div><h3>Search across everything</h3><p>One shared search layer for your collection, with full-text indexing and ranked results instead of isolated catalogue silos.</p></article>
-          <article class="feature"><div class="feature-icon">◈</div><h3>Metadata without lock-in</h3><p>Extract metadata automatically, edit it manually, and keep catalogue information useful even when files move or drives disappear temporarily.</p></article>
-          <article class="feature"><div class="feature-icon">↯</div><h3>Safe filesystem indexing</h3><p>Recursive scanning, identity-based upserts, missing-file handling and background jobs are designed for large local collections.</p></article>
-          <article class="feature"><div class="feature-icon">♫</div><h3>Music that feels like music</h3><p>Artists, albums, tracks, playlists, favourites, history, queue management, artwork and a proper playback workspace.</p></article>
-          <article class="feature"><div class="feature-icon">▣</div><h3>Purpose-built media views</h3><p>Movies, manga and books do not have to behave like music. Each catalogue gets its own useful experience while sharing the same foundation.</p></article>
-          <article class="feature"><div class="feature-icon">⌘</div><h3>Local by design</h3><p>Your catalogue and database live with you. oniDash is built around local folders, local storage and a local service on your machine.</p></article>
+      <div class="wrap">
+        <div class="intro"><span class="eyebrow">Made for real collections</span><h2>Less file management. More actually using your library.</h2><p>oniDash is built around the boring-but-important parts of a personal media collection: indexing, metadata, search, progress, playback and a UI you will want to come back to.</p></div>
+        <div class="features">
+          <article class="feature"><div class="icon">⌕</div><h3>One search layer</h3><p>Search across your library with shared full-text indexing and ranked results instead of separate silos for every catalogue.</p></article>
+          <article class="feature"><div class="icon">◈</div><h3>Useful metadata</h3><p>Extract metadata automatically, edit it when needed, and keep catalogue information useful when files move or drives go offline.</p></article>
+          <article class="feature"><div class="icon">↯</div><h3>Safe indexing</h3><p>Recursive scanning, background jobs, identity-based upserts and missing-file handling are designed for large local collections.</p></article>
+          <article class="feature"><div class="icon">♫</div><h3>A proper music workspace</h3><p>Artists, albums, tracks, playlists, favourites, history, queues, artwork, metadata editing and ranged audio playback.</p></article>
+          <article class="feature"><div class="icon">▣</div><h3>Purpose-built catalogues</h3><p>Movies, manga and books get experiences suited to their own workflows while sharing the same application foundation.</p></article>
+          <article class="feature"><div class="icon">⌂</div><h3>Local by design</h3><p>Your catalogue is backed by local storage and SQLite. Your media remains on the machine and folders you control.</p></article>
         </div>
       </div>
     </section>
 
     <section class="section" id="experience">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">The experience</span>
-          <h2>A shared foundation. A different rhythm for every medium.</h2>
-          <p>The shell stays consistent so you never have to relearn the application. The content adapts to what you are actually doing.</p>
-        </div>
-
-        <div class="showcase">
-          <div class="showcase-copy">
-            <span class="eyebrow">Music workspace</span>
-            <h3>More than a folder full of audio files.</h3>
-            <p>Turn a filesystem collection into a proper music library. Browse artists and albums, manage playlists and favourites, edit metadata, inspect files, build a queue and resume playback.</p>
-            <div class="showcase-list">
-              <div><span class="check">✓</span><span>Embedded artwork and metadata extraction</span></div>
-              <div><span class="check">✓</span><span>Queue, history, favourites and playlists</span></div>
-              <div><span class="check">✓</span><span>Playback progress and ranged streaming</span></div>
-            </div>
-          </div>
-          <div class="detail-card">
-            <div class="detail-head"><strong>Track information</strong><span>Metadata editor</span></div>
-            <div class="detail-grid">
-              <div class="detail-cover"></div>
-              <div class="detail-info">
-                <h4>Selected Ambient Works 85–92</h4>
-                <p>Aphex Twin · Electronic · 1992</p>
-                <div class="meta-lines">
-                  <div class="meta-line"><span>Track</span><b>07 / 11</b></div>
-                  <div class="meta-line"><span>Duration</span><b>04:18</b></div>
-                  <div class="meta-line"><span>Format</span><b>FLAC</b></div>
-                  <div class="meta-line"><span>Rating</span><b>★★★★★</b></div>
-                </div>
-                <div class="tag-row"><span class="tag">Electronic</span><span class="tag">Ambient</span><span class="tag">Favourite</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="showcase reverse">
-          <div class="showcase-copy">
-            <span class="eyebrow">Playback & progress</span>
-            <h3>Pick up exactly where you left off.</h3>
-            <p>Playback state belongs to the library, not to a temporary browser session. The same philosophy extends to watching and reading progress as those catalogues mature.</p>
-            <div class="showcase-list">
-              <div><span class="check">✓</span><span>Resume listening and watching</span></div>
-              <div><span class="check">✓</span><span>Persistent history and progress</span></div>
-              <div><span class="check">✓</span><span>Queue-first music controls</span></div>
-            </div>
-          </div>
-          <div class="queue-card">
-            <div class="queue-top"><strong>Up next</strong><span>5 tracks</span></div>
-            <div class="queue-row"><div class="q-art">01</div><div><strong>Xtal</strong><small>Aphex Twin · Selected Ambient Works</small></div><span class="queue-time">4:51</span></div>
-            <div class="queue-row"><div class="q-art">02</div><div><strong>Teardrop</strong><small>Massive Attack · Mezzanine</small></div><span class="queue-time">5:31</span></div>
-            <div class="queue-row"><div class="q-art">03</div><div><strong>Roads</strong><small>Portishead · Dummy</small></div><span class="queue-time">5:02</span></div>
-            <div class="queue-row"><div class="q-art">04</div><div><strong>Everything in Its Right Place</strong><small>Radiohead · Kid A</small></div><span class="queue-time">4:11</span></div>
-          </div>
+      <div class="wrap split">
+        <div><span class="eyebrow">The experience</span><h2>One application. A different rhythm for every medium.</h2><p>The shell stays familiar while each catalogue gets the controls and information that actually make sense for it.</p></div>
+        <div class="principles">
+          <div class="principle"><strong>Music</strong><p>Artists, albums, tracks, playlists, listening history, insights, queue and playback.</p></div>
+          <div class="principle"><strong>Movies</strong><p>Poster-oriented browsing, watch state, continue watching and resume playback.</p></div>
+          <div class="principle"><strong>Manga</strong><p>Library, reading progress, favourites, categories and a foundation for sources and extensions.</p></div>
+          <div class="principle"><strong>Books</strong><p>Bookshelf browsing, progress, ratings, favourites, series, sorting and search.</p></div>
+          <div class="principle"><strong>Library</strong><p>Shared inventory, folder sources, artwork, tags, collections and filesystem identity.</p></div>
+          <div class="principle"><strong>Search</strong><p>A shared cross-library discovery layer so your collection remains one collection.</p></div>
         </div>
       </div>
     </section>
 
-    <section class="philosophy" id="principles">
-      <div class="container">
-        <div class="philosophy-inner">
-          <div>
-            <span class="eyebrow">Project principles</span>
-            <h2>Quiet software for a noisy collection.</h2>
-          </div>
-          <div class="principles">
-            <div class="principle"><strong>Local-first</strong><p>The catalogue is designed to live on your machine, alongside the files you already own.</p></div>
-            <div class="principle"><strong>Non-destructive</strong><p>Indexing observes your filesystem. It does not need to take ownership of your media.</p></div>
-            <div class="principle"><strong>Specialized by design</strong><p>Music, movies, manga and books share infrastructure without being forced into one generic UI.</p></div>
-            <div class="principle"><strong>Automation with control</strong><p>Scanning and metadata workflows can be automated while remaining visible, editable and recoverable.</p></div>
-            <div class="principle"><strong>Open foundation</strong><p>The project is developed in the open, with a documented architecture and a conventional web stack.</p></div>
-            <div class="principle"><strong>Windows practical</strong><p>Built around local folders, multiple drives, a local service and the realities of a personal Windows machine.</p></div>
-          </div>
+    <section class="section" id="principles">
+      <div class="wrap split">
+        <div><span class="eyebrow">Product principles</span><h2>Quiet software for a noisy collection.</h2><p>oniDash is deliberately practical. It is not trying to replace your files, hide complexity behind a cloud account, or turn a media library into a social network.</p></div>
+        <div class="principles">
+          <div class="principle"><strong>Local-first</strong><p>Designed around your Windows machine, local folders, local database and local service.</p></div>
+          <div class="principle"><strong>Non-destructive</strong><p>Index your filesystem without taking ownership of the underlying media.</p></div>
+          <div class="principle"><strong>Specialized</strong><p>Shared infrastructure without forcing every medium into the same generic interface.</p></div>
+          <div class="principle"><strong>Observable</strong><p>Scanning and metadata workflows remain visible, editable and recoverable.</p></div>
+          <div class="principle"><strong>Open</strong><p>A documented architecture built with conventional technologies and developed in the open.</p></div>
+          <div class="principle"><strong>Practical</strong><p>Built for multiple disks, real folders, imperfect metadata and the realities of personal collections.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section code-section" id="stack">
+      <div class="wrap">
+        <div class="code-card">
+          <div class="code-copy"><span class="eyebrow">Under the hood</span><h2>Simple architecture. Clear boundaries.</h2><p>The frontend is React, TypeScript, Vite and Tailwind. The local service is ASP.NET Core with SQLite and Entity Framework Core. Media-specific behavior lives behind catalogue/plugin boundaries.</p></div>
+          <div class="stack"><span class="dim">React Web UI</span><br>├─ <span class="accent">Music</span><br>├─ <span class="accent">Movies</span><br>├─ <span class="accent">Manga</span><br>├─ <span class="accent">Books</span><br>└─ Future catalogues<br><br><span class="dim">ASP.NET Core API</span><br>├─ Application<br>├─ Core domain<br>└─ Infrastructure<br>&nbsp;&nbsp;&nbsp;└─ SQLite / EF Core<br><br><span class="dim">Windows · Local filesystem</span></div>
         </div>
       </div>
     </section>
 
     <section class="cta">
-      <div class="container">
-        <div class="cta-box">
-          <span class="eyebrow">Build your library</span>
-          <h2>Your collection deserves better than a file explorer.</h2>
-          <p>oniDash is being built as a focused, local-first home for the media you already own. Follow the project, inspect the architecture, and help shape what comes next.</p>
-          <div class="cta-actions">
-            <a class="button primary large" href="https://github.com/onimeno62/oniDash">Open oniDash on GitHub <span>↗</span></a>
-            <a class="button large" href="https://github.com/onimeno62/oniDash#readme">Read the documentation <span>↗</span></a>
-          </div>
-        </div>
-      </div>
+      <div class="wrap"><div class="cta-box"><span class="eyebrow">Start exploring</span><h2>Your collection deserves a proper home.</h2><p>oniDash is being built as a focused, local-first media environment for the things you already own. Follow the project, read the architecture and help shape what comes next.</p><div class="cta-actions"><a class="btn primary" href="https://github.com/onimeno62/oniDash">Open oniDash on GitHub ↗</a><a class="btn" href="https://github.com/onimeno62/oniDash#readme">Read the documentation ↗</a></div></div></div>
     </section>
   </main>
 
-  <footer>
-    <div class="container footer-inner">
-      <div class="footer-copy">© 2026 oniDash · Local-first personal media library</div>
-      <div class="footer-links">
-        <a href="https://github.com/onimeno62/oniDash">GitHub</a>
-        <a href="#features">Features</a>
-        <a href="#top">Back to top ↑</a>
-      </div>
-    </div>
-  </footer>
+  <footer><div class="wrap footer-inner"><span>© oniDash · Open source personal media library</span><div class="footer-links"><a href="#top">Back to top ↑</a><a href="https://github.com/onimeno62/oniDash">GitHub ↗</a></div></div></footer>
 </body>
 </html>
