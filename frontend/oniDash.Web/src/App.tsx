@@ -5,6 +5,7 @@ import { LibraryPage } from './pages/LibraryPage';
 import { MoviesDashboardPage } from './pages/MoviesDashboardPage';
 import { BooksDashboardPage } from './pages/BooksDashboardPage';
 import { MusicDashboardPage } from './pages/MusicDashboardPage';
+import { MusicLibraryIntelligencePage } from './pages/MusicLibraryIntelligencePage';
 import { MusicWorkspacePage } from './pages/MusicWorkspacePage';
 import { MangaDashboardPage } from './pages/MangaDashboardPage';
 import { UnifiedDashboardPage } from './pages/UnifiedDashboardPage';
@@ -13,4 +14,4 @@ import { HealthPage } from './pages/HealthPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { PlayerProvider } from './hooks/usePlayer';
-export default function App() { return <PlayerProvider><Routes><Route element={<AppShell />}><Route index element={<DashboardPage />} /><Route path="library" element={<LibraryPage />} /><Route path="music" element={<MusicDashboardPage />} /><Route path="music/studio" element={<MusicWorkspacePage />} /><Route path="movies" element={<MoviesDashboardPage />} /><Route path="manga" element={<MangaDashboardPage />} /><Route path="books" element={<BooksDashboardPage />} /><Route path="unified" element={<UnifiedDashboardPage />} /><Route path="search" element={<SearchPage />} /><Route path="health" element={<HealthPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="*" element={<NotFoundPage />} /></Route></Routes></PlayerProvider>; }
+export default function App() { return <PlayerProvider><Routes><Route element={<AppShell />}><Route index element={<DashboardPage />} /><Route path="library" element={<LibraryPage />} /><Route path="music" element={<MusicDashboardPage />} /><Route path="music/studio" element={<MusicLibraryIntelligencePage />} /><Route path="music/workspace" element={<MusicWorkspacePage />} /><Route path="movies" element={<MoviesDashboardPage />} /><Route path="manga" element={<MangaDashboardPage />} /><Route path="books" element={<BooksDashboardPage />} /><Route path="unified" element={<UnifiedDashboardPage />} /><Route path="search" element={<SearchPage />} /><Route path="health" element={<HealthPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="*" element={<NotFoundPage />} /></Route></Routes></PlayerProvider>; }
