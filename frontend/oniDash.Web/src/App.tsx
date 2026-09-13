@@ -5,11 +5,46 @@ import { LibraryPage } from './pages/LibraryPage';
 import { MoviesDashboardPage } from './pages/MoviesDashboardPage';
 import { BooksDashboardPage } from './pages/BooksDashboardPage';
 import { MusicDashboardPage } from './pages/MusicDashboardPage';
+import { MusicLibraryIntelligencePage } from './pages/MusicLibraryIntelligencePage';
+import { MusicCurationPage } from './pages/MusicCurationPage';
+import { MusicWorkspacePage } from './pages/MusicWorkspacePage';
 import { MangaDashboardPage } from './pages/MangaDashboardPage';
 import { UnifiedDashboardPage } from './pages/UnifiedDashboardPage';
+import { MediaIntelligencePage } from './pages/MediaIntelligencePage';
+import { MediaDetailPage } from './pages/MediaDetailPage';
+import { MediaCollectionsPage } from './pages/MediaCollectionsPage';
+import { MediaCommandCenterPage } from './pages/MediaCommandCenterPage';
+import { MediaRoomsPage } from './pages/MediaRoomsPage';
+import { SmartQueuePage } from './pages/SmartQueuePage';
 import { SearchPage } from './pages/SearchPage';
 import { HealthPage } from './pages/HealthPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { PlayerProvider } from './hooks/usePlayer';
-export default function App() { return <PlayerProvider><Routes><Route element={<AppShell />}><Route index element={<DashboardPage />} /><Route path="library" element={<LibraryPage />} /><Route path="music" element={<MusicDashboardPage />} /><Route path="movies" element={<MoviesDashboardPage />} /><Route path="manga" element={<MangaDashboardPage />} /><Route path="books" element={<BooksDashboardPage />} /><Route path="unified" element={<UnifiedDashboardPage />} /><Route path="search" element={<SearchPage />} /><Route path="health" element={<HealthPage />} /><Route path="settings" element={<SettingsPage />} /><Route path="*" element={<NotFoundPage />} /></Route></Routes></PlayerProvider>; }
+
+export default function App() {
+  return <PlayerProvider><Routes><Route element={<AppShell />}>
+    <Route index element={<DashboardPage />} />
+    <Route path="library" element={<LibraryPage />} />
+    <Route path="music" element={<MusicDashboardPage />} />
+    <Route path="music/studio" element={<MusicLibraryIntelligencePage />} />
+    <Route path="music/curate" element={<MusicCurationPage />} />
+    <Route path="music/workspace" element={<MusicWorkspacePage />} />
+    <Route path="movies" element={<MoviesDashboardPage />} />
+    <Route path="manga" element={<MangaDashboardPage />} />
+    <Route path="books" element={<BooksDashboardPage />} />
+    <Route path="unified" element={<UnifiedDashboardPage />} />
+    <Route path="rooms" element={<MediaRoomsPage />} />
+    <Route path="intelligence" element={<MediaIntelligencePage />} />
+    <Route path="command" element={<MediaCommandCenterPage />} />
+    <Route path="queue" element={<SmartQueuePage />} />
+    <Route path="media/:kind/:id" element={<MediaDetailPage />} />
+    <Route path="collections/albums" element={<MediaCollectionsPage kind="albums" />} />
+    <Route path="collections/artists" element={<MediaCollectionsPage kind="artists" />} />
+    <Route path="collections/movies" element={<MediaCollectionsPage kind="movies" />} />
+    <Route path="search" element={<SearchPage />} />
+    <Route path="health" element={<HealthPage />} />
+    <Route path="settings" element={<SettingsPage />} />
+    <Route path="*" element={<NotFoundPage />} />
+  </Route></Routes></PlayerProvider>;
+}
