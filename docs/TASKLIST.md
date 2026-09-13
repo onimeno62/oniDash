@@ -91,13 +91,13 @@ This is the execution order for autonomous agents. Do not skip ahead because a l
 - [x] Cross-media recommendations only from local catalogue unless provider explicitly enabled.
 
 ## M9 — Windows productization
-- [ ] Desktop wrapper.
-- [ ] Installer/uninstaller.
-- [ ] Startup/tray behavior.
-- [ ] File associations where appropriate.
-- [ ] Media keys.
-- [ ] Windows notifications.
-- [ ] Data migration/backup/restore.
+- [x] Desktop wrapper.
+- [x] Installer/uninstaller.
+- [x] Startup/tray behavior.
+- [x] File associations where appropriate.
+- [x] Media keys.
+- [x] Windows notifications.
+- [x] Data migration/backup/restore.
 
 ## Agent execution rule
 Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs.

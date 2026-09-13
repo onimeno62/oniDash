@@ -8,6 +8,7 @@ using oniDash.Application.Health;
 using oniDash.Books;
 using oniDash.Infrastructure;
 using oniDash.Infrastructure.Persistence;
+using oniDash.Infrastructure.Windows;
 using oniDash.Manga;
 using oniDash.Manga.Persistence;
 using oniDash.Music;
@@ -22,8 +23,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
-builder.Services
-    .AddRouting(options => options.LowercaseUrls = true)
+builder.Services.AddRouting(options => options.LowercaseUrls = true)
     .ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(
         new JsonStringEnumConverter()));
 
@@ -37,6 +37,7 @@ builder.Services.AddManga(builder.Configuration);
 
 builder.Services.AddSingleton<IAppVersionProvider, AssemblyAppVersionProvider>();
 builder.Services.AddScoped<IHealthService, HealthService>();
+builder.Services.AddSingleton<IWindowsProductService, WindowsProductService>();
 
 var app = builder.Build();
 app.UseCors();
@@ -53,6 +54,7 @@ app.MapMovieEndpoints();
 app.MapBooksEndpoints();
 app.MapMangaPluginEndpoints();
 app.MapDashboardEndpoints();
+app.MapPlatformEndpoints();
 
 // API endpoints are registered before the SPA fallback so an unmatched /api/* request
 // cannot be satisfied by index.html. This keeps API clients on JSON/error semantics and

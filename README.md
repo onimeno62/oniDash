@@ -4,6 +4,8 @@
 >
 > Music. Movies. Anime. Manga. Books. One beautiful dashboard.
 
+🌐 **Live Landing Page:** [https://onimeno62.github.io/oniDash/](https://onimeno62.github.io/oniDash/)
+
 oniDash is a self-hosted, local-first media library platform designed for Windows. It brings personal media discovery, organization, metadata, playback, reading progress, search, and plugin-driven catalogues into one modern web dashboard backed by a local ASP.NET Core service and SQLite.
 
 The project is intentionally designed around a simple principle:
@@ -938,6 +940,8 @@ A license has not yet been declared for the repository. Until a license is added
 ## 🔗 Project
 
 **Repository:** https://github.com/onimeno62/oniDash
+
+**Live Landing Page:** https://onimeno62.github.io/oniDash/
 
 **Default branch:** `main`
 
