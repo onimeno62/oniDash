@@ -1,1 +1,1 @@
-export { MusicWorkspacePage as MusicDashboardPage } from './MusicWorkspacePage';
+export { MusicHomeDashboardPage as MusicDashboardPage } from './MusicHomeDashboardPage';
