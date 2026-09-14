@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using oniDash.Music.Persistence;
 
@@ -23,19 +24,20 @@ public static class MusicCollectionsEndpoints
         music.MapGet("/collections/home", async (MusicDbContext db, Guid? libraryId, int? limit, CancellationToken ct) =>
         {
             var take = Math.Clamp(limit ?? 12, 1, MaxItems);
-            var tracks = db.Tracks.AsNoTracking();
-            if (libraryId is not null) tracks = tracks.Where(t => t.LibraryId == libraryId);
-
+            var libraryParameter = new SqliteParameter("@libraryId", libraryId.HasValue ? libraryId.Value : DBNull.Value);
+            var takeParameter = new SqliteParameter("@take", take);
             var recentlyAddedIds = await db.Database.SqlQueryRaw<Guid>(
-                "SELECT Id FROM Tracks WHERE (@libraryId IS NULL OR LibraryId = @libraryId) AND IsMissing = 0 ORDER BY AddedAtUtc DESC, Id LIMIT {0}",
-                take).ToListAsync(ct);
+                "SELECT Id FROM Tracks WHERE (@libraryId IS NULL OR LibraryId = @libraryId) AND IsMissing = 0 ORDER BY AddedAtUtc DESC, Id LIMIT @take",
+                libraryParameter, takeParameter).ToListAsync(ct);
             var recentlyAdded = await TrackQuery(db, recentlyAddedIds, ct);
 
             var recentHistoryIds = await db.Database.SqlQueryRaw<Guid>(
-                "SELECT TrackId FROM MusicPlayHistory WHERE (@libraryId IS NULL OR TrackId IN (SELECT Id FROM Tracks WHERE LibraryId = @libraryId)) GROUP BY TrackId ORDER BY MAX(StartedAtUtc) DESC, TrackId LIMIT {0}",
-                take).ToListAsync(ct);
+                "SELECT TrackId FROM MusicPlayHistory WHERE (@libraryId IS NULL OR TrackId IN (SELECT Id FROM Tracks WHERE LibraryId = @libraryId)) GROUP BY TrackId ORDER BY MAX(StartedAtUtc) DESC, TrackId LIMIT @take",
+                libraryParameter, takeParameter).ToListAsync(ct);
             var recentlyPlayed = await TrackQuery(db, recentHistoryIds, ct);
 
+            var tracks = db.Tracks.AsNoTracking();
+            if (libraryId is not null) tracks = tracks.Where(t => t.LibraryId == libraryId);
             var mostPlayedIds = await db.PlayHistory
                 .Where(h => libraryId == null || db.Tracks.Any(t => t.Id == h.TrackId && t.LibraryId == libraryId))
                 .GroupBy(h => h.TrackId)
@@ -73,11 +75,12 @@ public static class MusicCollectionsEndpoints
             var validIds = await db.Tracks.Where(t => request.TrackIds.Contains(t.Id) && !t.IsMissing).Select(t => t.Id).ToListAsync(ct);
             var existing = await db.PlaylistItems.Where(i => i.PlaylistId == playlistId).Select(i => i.TrackId).ToListAsync(ct);
             var position = await db.PlaylistItems.Where(i => i.PlaylistId == playlistId).Select(i => (int?)i.Position).MaxAsync(ct) ?? -1;
-            foreach (var id in request.TrackIds.Where(validIds.Contains).Where(id => !existing.Contains(id)).Distinct())
+            var toAdd = request.TrackIds.Where(validIds.Contains).Where(id => !existing.Contains(id)).Distinct().ToList();
+            foreach (var id in toAdd)
                 db.PlaylistItems.Add(new Domain.MusicPlaylistItem { Id = Guid.NewGuid(), PlaylistId = playlistId, TrackId = id, Position = ++position, AddedAtUtc = DateTimeOffset.UtcNow });
             playlist.UpdatedAtUtc = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
-            return Results.Ok(new { added = request.TrackIds.Where(validIds.Contains).Distinct().Count(id => !existing.Contains(id)) });
+            return Results.Ok(new { added = toAdd.Count });
         });
 
         return app;
