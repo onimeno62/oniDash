@@ -1,103 +1,169 @@
 # oniDash Master Task List
 
-This is the execution order for autonomous agents. Do not skip ahead because a later UI is easier to build.
+**Current milestone: Music Rebuild**
 
-## M0 — Platform foundation hardening
-- [x] Audit current Core/Application/Infrastructure boundaries.
-- [x] Define canonical `MediaType`, `MediaItem`, `MediaFile`, `Library`, `Source`, `Artwork`, `Tag`, `Collection` contracts.
-- [x] Define canonical API error and pagination contracts.
-- [x] Define common background `Job` model and status API.
-- [x] Add integration-test harness for API + temporary SQLite + temporary media folders.
-- [x] Fix API routes that can fall through to SPA HTML.
+Agents execute the first applicable unchecked task in order. A task is complete only with implementation, relevant tests, handled UI states, documentation updates where needed, and actual verification evidence.
 
-## M1 — Unified scanner/indexer
-- [x] Source CRUD and validation.
-- [x] Safe recursive filesystem enumerator.
-- [x] Extension/signature-based media handler registry.
-- [x] Stable file identity and idempotent upsert.
-- [x] Missing-file detection.
-- [x] Scan jobs with progress/cancel/retry.
-- [x] Scan diagnostics and per-file failures.
-- [x] Scanner service behavior tests for indexing, reconciliation, progress, and handler isolation.
-- [x] End-to-end scanner integration test against temporary SQLite + filesystem.
+## 0 — Preparation / audit
+- [ ] Inventory current Music backend, database, API, frontend, player and tests.
+- [ ] Map existing Music functionality to the new Music contracts.
+- [ ] Identify broken/dead/duplicated code and mark it for replacement or removal.
+- [ ] Establish a regression baseline without claiming unverified existing tests pass.
+- [ ] Define migration strategy so existing catalogue/user state is preserved.
 
-## M2 — Metadata + artwork engine
-- [x] `IMediaHandler` contract.
-- [x] Audio metadata handler.
-- [x] Video metadata handler.
-- [x] EPUB/PDF/comic metadata handler.
-- [x] Metadata normalization pipeline.
-- [x] Provenance/confidence model.
-- [x] Embedded artwork extraction.
-- [x] Artwork cache and lifecycle contract.
-- [x] Optional provider interfaces.
-- [x] Enrichment preview/apply workflow contract; never implicit overwrite.
+## 1 — Music domain and persistence
+- [ ] Define Track, Album, Artist, Genre, AlbumArtist, Disc and file relationships.
+- [ ] Define Favorite, Rating, PlayHistory and PlaybackState persistence.
+- [ ] Define Playlist, PlaylistItem and SmartPlaylist models.
+- [ ] Define Lyrics/LyricsVersion and Artwork models/provenance.
+- [ ] Add required indexes for library queries, history and search.
+- [ ] Add safe migrations and migration tests.
+- [ ] Define typed Music API DTOs; do not expose EF entities.
 
-## M3 — Global search + library health
-- [x] Canonical cross-media search contract.
-- [x] Canonical FTS5-backed search index model.
-- [x] Live incremental FTS maintenance through database triggers.
-- [x] Full rebuild/recovery command.
-- [x] Cross-media search endpoint and backend search service.
-- [x] Filters for media type/library/tag/status in the canonical search surface.
-- [x] Search result navigation parity across all media modules.
-- [x] Library health dashboard.
-- [x] Missing files / missing artwork / metadata errors / duplicates diagnostics.
+## 2 — Library sources and scanning
+- [ ] Add/remove/validate Music library sources.
+- [ ] Implement full recursive music scan.
+- [ ] Implement incremental scan based on file identity/change detection.
+- [ ] Integrate filesystem watcher/reconciliation.
+- [ ] Reconcile renamed/moved files without creating duplicate tracks.
+- [ ] Mark missing files recoverably.
+- [ ] Add scan progress, cancellation, retry and per-file diagnostics.
+- [ ] Test scan idempotency and failure isolation.
 
-## M4 — Music completion
-- [x] Verify existing Music APIs against canonical platform contracts.
-- [x] Fix remaining type/build issues.
-- [x] Library health and duplicate tooling.
-- [x] ReplayGain/loudness metadata where supported.
-- [x] Gapless/crossfade where technically supported.
-- [x] Media-key/Windows playback integration boundary.
-- [x] Complete lyrics/provider error handling.
+## 3 — Library queries
+- [ ] Songs endpoint with server-side pagination.
+- [ ] Albums endpoint with grouping and sorting.
+- [ ] Artists endpoint.
+- [ ] Genres endpoint/facets.
+- [ ] Folders endpoint/tree.
+- [ ] Shared filtering and sorting contract.
+- [ ] Multi-field music search.
+- [ ] Virtualized Songs table.
+- [ ] Multi-select and keyboard navigation.
+- [ ] Loading/empty/error/retry/missing-file states.
 
-## M5 — Movies + TV/Anime
-- [x] Align Movies with scanner/indexer.
-- [x] Movie metadata/artwork enrichment.
-- [x] Watch-state/progress persistence.
-- [x] Series/season/episode domain.
-- [x] Anime-specific metadata as optional provider enrichment.
-- [x] Continue-watching across movies/episodes.
+## 4 — File management
+- [ ] Safe single-track rename.
+- [ ] Safe move.
+- [ ] Explicit delete from disk.
+- [ ] Remove from library without deleting file.
+- [ ] Open file location in Windows Explorer.
+- [ ] Bulk rename/move/delete with per-item results.
+- [ ] Filename template engine.
+- [ ] Organization dry-run preview.
+- [ ] Duplicate detection: exact and potential duplicates.
+- [ ] Tests for collisions, invalid paths, failures and rollback/reconciliation.
 
-## M6 — Manga platform
-- [x] Replace temporary local adapter behavior with real plugin architecture.
-- [x] Mihon/Suwayomi-compatible source/extension boundary.
-- [x] Extension store/install/update management.
-- [x] Source search/popular/latest.
-- [x] Manga/chapter persistence.
-- [x] Reading progress and bookmarks.
-- [x] Download queue and offline storage.
-- [x] Reader.
-- [x] Library updates/notifications.
-- [x] Tracking/sync as optional integrations.
+## 5 — Metadata and artwork
+- [ ] Complete embedded tag reader/writer.
+- [ ] Single-track metadata editor.
+- [ ] Bulk metadata editor with replace/append/find-replace operations.
+- [ ] Tag normalization rules.
+- [ ] Metadata write verification.
+- [ ] Metadata change/error reporting.
+- [ ] MusicBrainz provider adapter.
+- [ ] AcoustID fingerprint provider adapter.
+- [ ] Candidate matching UI with current-vs-proposed preview.
+- [ ] Embedded artwork extraction.
+- [ ] Local folder artwork fallback where supported.
+- [ ] Artwork cache and provenance.
+- [ ] Provider failure/rate-limit tests.
 
-## M7 — Books platform
-- [x] Align Books with scanner/indexer.
-- [x] EPUB/PDF metadata and cover extraction.
-- [x] Author/series model.
-- [x] Reading progress and bookmarks.
-- [x] EPUB/PDF reader.
-- [x] Search/filter/sort parity.
-- [x] Library health integration.
+## 6 — Playback engine
+- [ ] Replace page-owned audio behavior with application-scoped PlayerService.
+- [ ] Define player state machine and serialized commands.
+- [ ] Implement decoder/output abstraction.
+- [ ] Implement Windows WASAPI output/device enumeration.
+- [ ] Play/pause.
+- [ ] Seek.
+- [ ] Previous/next.
+- [ ] Queue add/remove/reorder/clear.
+- [ ] Play Next.
+- [ ] Shuffle.
+- [ ] Repeat Off/All/One.
+- [ ] Volume/mute/output device.
+- [ ] Persist playback position and history.
+- [ ] Handle load/seek/device/decode errors without corrupting queue state.
+- [ ] Gapless playback where supported.
+- [ ] Crossfade where supported.
+- [ ] ReplayGain/loudness where supported.
 
-## M8 — Unified dashboard
-- [x] Continue Reading/Watching/Listening.
-- [x] Recently Added.
-- [x] Recently Played/Read.
-- [x] Favorites across media.
-- [x] Activity timeline.
-- [x] Cross-media recommendations only from local catalogue unless provider explicitly enabled.
+## 7 — Player UX
+- [ ] Persistent Mini Player.
+- [ ] Expanded Player.
+- [ ] Full Now Playing view.
+- [ ] Queue panel.
+- [ ] Waveform generation/rendering.
+- [ ] Precise waveform seeking.
+- [ ] Audio-analysis pipeline for FFT/spectrum data.
+- [ ] Spectrum visualizer.
+- [ ] Bars visualizer.
+- [ ] Oscilloscope visualizer.
+- [ ] Additional visualizer modes only after core visualizers are stable.
+- [ ] Ensure player survives route changes and page unmounts.
 
-## M9 — Windows productization
-- [x] Desktop wrapper.
-- [x] Installer/uninstaller.
-- [x] Startup/tray behavior.
-- [x] File associations where appropriate.
-- [x] Media keys.
-- [x] Windows notifications.
-- [x] Data migration/backup/restore.
+## 8 — Lyrics
+- [ ] Embedded lyrics extraction.
+- [ ] Local `.lrc` and `.txt` discovery.
+- [ ] Lyrics provider abstraction.
+- [ ] LRCLIB provider.
+- [ ] Search and candidate selection.
+- [ ] Explicit save/download operation.
+- [ ] Plain lyrics display.
+- [ ] Synced lyrics display.
+- [ ] Click lyric line to seek.
+- [ ] Lyrics editor with timestamp editing.
+- [ ] Offset/shift synchronization tools.
+- [ ] Preserve source/provenance and local edits.
+- [ ] Provider failure and no-match states.
 
-## Agent execution rule
-Each task should be delivered as a complete vertical slice: implementation → tests → UI states → docs.
+## 9 — Collections and history
+- [ ] Favorite/unfavorite track/album/artist behavior.
+- [ ] 0–5 star rating behavior.
+- [ ] Play history recording rules.
+- [ ] Recently Added query.
+- [ ] Recently Played query.
+- [ ] Most Played query.
+- [ ] Never Played query.
+- [ ] Top Rated query.
+- [ ] Normal playlists.
+- [ ] Playlist reorder/remove/queue/play.
+- [ ] Smart playlist rule model.
+- [ ] Smart playlist rule builder.
+- [ ] Save queue as playlist.
+
+## 10 — Music Home
+- [ ] Continue Listening backed by persisted playback state.
+- [ ] Recently Played carousel.
+- [ ] Recently Added carousel.
+- [ ] Most Played carousel.
+- [ ] Favorites carousel.
+- [ ] Top Rated carousel.
+- [ ] Album/artist/genre discovery sections.
+- [ ] Playlist section.
+- [ ] Library totals.
+- [ ] Useful music-library health signals.
+- [ ] Empty/new-library onboarding.
+- [ ] Remove dead/placeholder dashboard controls.
+
+## 11 — Windows integration and hardening
+- [ ] Media-key integration boundary.
+- [ ] Windows output-device change handling.
+- [ ] Native notifications/Now Playing integration where appropriate.
+- [ ] Drag/drop files and folders.
+- [ ] Keyboard shortcut map.
+- [ ] Large-library performance profiling.
+- [ ] Crash/restart recovery for scanner and player.
+- [ ] End-to-end Music regression suite.
+- [ ] Accessibility pass.
+- [ ] Final destructive-operation safety audit.
+
+## Global acceptance criteria
+- [ ] No visible Music control is fake or dead.
+- [ ] No Music page directly touches SQLite or the filesystem.
+- [ ] Playback is independent of React page lifecycle.
+- [ ] Library queries are server/database backed and scalable.
+- [ ] External providers never silently overwrite local truth.
+- [ ] Files are never silently renamed, moved, deleted or overwritten.
+- [ ] Long-running operations are observable and cancellable.
+- [ ] Build, typecheck and relevant automated tests have actual evidence.
