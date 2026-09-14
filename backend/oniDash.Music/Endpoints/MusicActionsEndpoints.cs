@@ -38,6 +38,31 @@ public static class MusicActionsEndpoints
             return Results.Ok(new { rating = track.Rating });
         });
 
+        music.MapGet("/tracks/{trackId:guid}/playback-state", async (MusicDbContext db, Guid trackId, CancellationToken ct) =>
+        {
+            var state = await db.PlaybackStates.AsNoTracking().Where(x => x.TrackId == trackId)
+                .Select(x => new { x.PositionSeconds, x.Completed, x.UpdatedAtUtc }).SingleOrDefaultAsync(ct);
+            return Results.Ok(state);
+        });
+
+        music.MapPut("/tracks/{trackId:guid}/playback-state", async (MusicDbContext db, Guid trackId, PlaybackStateRequest request, CancellationToken ct) =>
+        {
+            if (request.PositionSeconds < 0 || double.IsNaN(request.PositionSeconds) || double.IsInfinity(request.PositionSeconds))
+                return Results.BadRequest(new { error = "Position must be a finite non-negative value." });
+            if (!await db.Tracks.AnyAsync(t => t.Id == trackId, ct)) return Results.NotFound();
+            var state = await db.PlaybackStates.SingleOrDefaultAsync(x => x.TrackId == trackId, ct);
+            if (state is null)
+            {
+                state = new Domain.MusicPlaybackState { Id = Guid.NewGuid(), TrackId = trackId };
+                db.PlaybackStates.Add(state);
+            }
+            state.PositionSeconds = request.PositionSeconds;
+            state.Completed = request.Completed;
+            state.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { state.PositionSeconds, state.Completed, state.UpdatedAtUtc });
+        });
+
         music.MapPost("/tracks/{trackId:guid}/lyrics", async (MusicDbContext db, IMediaFileLocator locator, Guid trackId, LyricsRequest request, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Text)) return Results.BadRequest(new { error = "Lyrics cannot be empty." });
@@ -46,20 +71,29 @@ public static class MusicActionsEndpoints
             if (track is null) return Results.NotFound();
             var location = await locator.LocateAsync(track.FileId, ct);
             if (location is null) return Results.NotFound();
+            var normalized = request.Text.Replace("\r\n", "\n");
             var path = Path.ChangeExtension(location.AbsolutePath, ".lrc");
-            try { await File.WriteAllTextAsync(path, request.Text.Replace("\r\n", "\n"), ct); }
+            try { await File.WriteAllTextAsync(path, normalized, ct); }
             catch (UnauthorizedAccessException) { return Results.Problem("Lyrics file is not writable.", statusCode: StatusCodes.Status403Forbidden); }
             catch (IOException) { return Results.Problem("Lyrics file could not be written.", statusCode: StatusCodes.Status503ServiceUnavailable); }
+            var existing = await db.Lyrics.SingleOrDefaultAsync(x => x.TrackId == trackId && x.Source == "local", ct);
+            if (existing is null) db.Lyrics.Add(new Domain.MusicLyrics { Id = Guid.NewGuid(), TrackId = trackId, Text = normalized, Kind = request.Synchronized ? Domain.MusicLyricsKind.Synced : Domain.MusicLyricsKind.Plain, Source = "local", IsLocalEdit = true, UpdatedAtUtc = DateTimeOffset.UtcNow });
+            else { existing.Text = normalized; existing.Kind = request.Synchronized ? Domain.MusicLyricsKind.Synced : Domain.MusicLyricsKind.Plain; existing.IsLocalEdit = true; existing.UpdatedAtUtc = DateTimeOffset.UtcNow; }
+            await db.SaveChangesAsync(ct);
             return Results.Ok(new { path, synchronized = request.Synchronized });
         });
 
         music.MapGet("/tracks/{trackId:guid}/lyrics", async (MusicDbContext db, IMediaFileLocator locator, Guid trackId, CancellationToken ct) =>
         {
+            var stored = await db.Lyrics.AsNoTracking().Where(x => x.TrackId == trackId && x.Source == "local").OrderByDescending(x => x.UpdatedAtUtc).Select(x => new { x.Text, synchronized = x.Kind != Domain.MusicLyricsKind.Plain }).FirstOrDefaultAsync(ct);
+            if (stored is not null) return Results.Ok(stored);
             var track = await db.Tracks.AsNoTracking().SingleOrDefaultAsync(t => t.Id == trackId, ct);
             if (track is null) return Results.NotFound();
             var location = await locator.LocateAsync(track.FileId, ct);
             if (location is null) return Results.NotFound();
-            var path = Path.ChangeExtension(location.AbsolutePath, ".lrc");
+            var lrcPath = Path.ChangeExtension(location.AbsolutePath, ".lrc");
+            var txtPath = Path.ChangeExtension(location.AbsolutePath, ".txt");
+            var path = File.Exists(lrcPath) ? lrcPath : txtPath;
             if (!File.Exists(path)) return Results.NotFound();
             try
             {
@@ -67,7 +101,7 @@ public static class MusicActionsEndpoints
                 if (info.Length > MaxLyricsCharacters * 4L) return Results.Problem("Lyrics file is too large to read.", statusCode: StatusCodes.Status413PayloadTooLarge);
                 var text = await File.ReadAllTextAsync(path, ct);
                 if (text.Length > MaxLyricsCharacters) return Results.Problem("Lyrics file is too large to read.", statusCode: StatusCodes.Status413PayloadTooLarge);
-                return Results.Ok(new { text, synchronized = HasLrcTimestamps(text) });
+                return Results.Ok(new { text, synchronized = path.EndsWith(".lrc", StringComparison.OrdinalIgnoreCase) && HasLrcTimestamps(text) });
             }
             catch (UnauthorizedAccessException) { return Results.Problem("Lyrics file is not readable.", statusCode: StatusCodes.Status403Forbidden); }
             catch (IOException) { return Results.Problem("Lyrics file could not be read.", statusCode: StatusCodes.Status503ServiceUnavailable); }
@@ -121,6 +155,7 @@ public static class MusicActionsEndpoints
 
     private static bool HasLrcTimestamps(string text) => text.Split('\n').Any(line => line.Length >= 4 && line[0] == '[' && line.IndexOf(']') > 1);
     public sealed record RatingRequest(int Rating);
+    public sealed record PlaybackStateRequest(double PositionSeconds, bool Completed);
     public sealed record RenameRequest(string? FileName);
     public sealed record MoveRequest(string? RelativeDirectory);
     public sealed record DeleteRequest(bool Confirmed);
