@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using oniDash.Application.Media;
 using oniDash.Application.Scanning;
+using oniDash.Music.Actions;
 using oniDash.Music.Cataloging;
 using oniDash.Music.Endpoints;
 using oniDash.Music.Metadata;
@@ -26,9 +27,16 @@ public static class MusicServiceCollectionExtensions
         services.AddScoped<IAudioTagWriter, TagLibAudioTagWriter>();
         services.AddScoped<MusicReindexService>();
         services.AddScoped<MusicDatabaseInitializer>();
+        services.AddScoped<MusicFileService>();
         services.AddScoped<IMediaFileLocator, AudioFileLocator>();
         services.AddScoped<IMediaHandler, AudioMediaHandler>();
         services.AddScoped<IIndexedMediaHandler, MusicIndexedMediaHandler>();
+        services.AddHttpClient<MusicBrainzMetadataProvider>(client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("oniDash", "0.1"));
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+        services.AddScoped<IMusicMetadataProvider>(sp => sp.GetRequiredService<MusicBrainzMetadataProvider>());
         return services;
     }
 
