@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using oniDash.Music.Domain;
 using oniDash.Music.Persistence;
 
@@ -9,7 +8,8 @@ public sealed class MusicPersistenceModelTests
     [Fact]
     public void Model_contains_phase_one_persistence_entities()
     {
-        using var db = MusicTestDatabase.Create();
+        using var fixture = new MusicTestDatabase();
+        using var db = fixture.CreateContext();
         var entityTypes = db.Model.GetEntityTypes().Select(e => e.ClrType).ToHashSet();
 
         Assert.Contains(typeof(MusicTrack), entityTypes);
@@ -21,7 +21,8 @@ public sealed class MusicPersistenceModelTests
     [Fact]
     public void Track_has_indexes_for_missing_and_added_queries()
     {
-        using var db = MusicTestDatabase.Create();
+        using var fixture = new MusicTestDatabase();
+        using var db = fixture.CreateContext();
         var track = db.Model.FindEntityType(typeof(MusicTrack))!;
         var indexes = track.GetIndexes().ToList();
 
