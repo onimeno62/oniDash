@@ -11,6 +11,7 @@ using oniDash.Application.Scanning;
 using oniDash.Music.Actions;
 using oniDash.Music.Cataloging;
 using oniDash.Music.Endpoints;
+using oniDash.Music.Lyrics;
 using oniDash.Music.Metadata;
 using oniDash.Music.Persistence;
 using oniDash.Music.Tagging;
@@ -38,6 +39,13 @@ public static class MusicServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(15);
         });
         services.AddScoped<IMusicMetadataProvider>(sp => sp.GetRequiredService<MusicBrainzMetadataProvider>());
+        services.AddHttpClient<LrclibLyricsProvider>(client =>
+        {
+            client.BaseAddress = new Uri("https://lrclib.net");
+            client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("oniDash", "0.1"));
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddScoped<IMusicLyricsProvider>(sp => sp.GetRequiredService<LrclibLyricsProvider>());
         return services;
     }
 
@@ -48,7 +56,8 @@ public static class MusicServiceCollectionExtensions
             .MapMusicMetadataEndpoints()
             .MapMusicInsightsEndpoints()
             .MapMusicActionsEndpoints()
-            .MapMusicProviderEndpoints();
+            .MapMusicProviderEndpoints()
+            .MapMusicLyricsProviderEndpoints();
 
     private static string ResolveConnectionString(IConfiguration configuration)
     {
