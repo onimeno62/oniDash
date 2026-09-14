@@ -10,18 +10,12 @@ using oniDash.Music.Tagging;
 
 namespace oniDash.Music.Cataloging;
 
-/// <summary>
-/// Builds and maintains the artist/album/track catalogue from embedded audio tags.
-/// Tracks anchor 1:1 to the scan's media items, so re-scans and re-indexing converge
-/// on the same rows (user tags/collections on the items are never disturbed). Per-file
-/// failures are logged and skipped — a bad file never blocks the rest.
-/// </summary>
+/// <summary>Builds the music catalogue from indexed audio files and embedded tags.</summary>
 public sealed class MusicCatalogService(
     MusicDbContext dbContext,
     IAudioTagReader tagReader,
     ILogger<MusicCatalogService> logger)
 {
-    /// <summary>Extensions the catalogue understands; everything else is ignored.</summary>
     public static readonly string[] AudioExtensions =
         [".mp3", ".m4a", ".mp4", ".aac", ".flac", ".ogg", ".opus", ".wav", ".wma"];
 
@@ -47,18 +41,27 @@ public sealed class MusicCatalogService(
                 return false;
             }
 
+            var now = DateTimeOffset.UtcNow;
             var track = await dbContext.Tracks
                 .SingleOrDefaultAsync(t => t.MediaItemId == mediaItemId, cancellationToken)
                 .ConfigureAwait(false);
+
+            var isNew = track is null;
             if (track is null)
             {
-                track = new MusicTrack { Id = Guid.NewGuid(), MediaItemId = mediaItemId };
+                track = new MusicTrack
+                {
+                    Id = Guid.NewGuid(),
+                    MediaItemId = mediaItemId,
+                    AddedAtUtc = now,
+                };
                 dbContext.Tracks.Add(track);
             }
 
+            var albumArtistName = tags.AlbumArtist ?? tags.TrackArtist;
             var album = await ResolveAlbumAsync(libraryId, tags, cancellationToken).ConfigureAwait(false);
-            var artist = await ResolveArtistAsync(libraryId, tags.TrackArtist, cancellationToken)
-                .ConfigureAwait(false);
+            var artist = await ResolveArtistAsync(libraryId, tags.TrackArtist, cancellationToken).ConfigureAwait(false);
+            var albumArtist = await ResolveArtistAsync(libraryId, albumArtistName, cancellationToken).ConfigureAwait(false);
 
             track.LibraryId = libraryId;
             track.FileId = fileId;
@@ -66,14 +69,18 @@ public sealed class MusicCatalogService(
             track.AlbumId = album?.Id;
             track.ArtistId = artist?.Id;
             track.ArtistName = tags.TrackArtist;
+            track.AlbumArtistName = albumArtistName;
+            track.AlbumArtistId = albumArtist?.Id;
             track.TrackNumber = tags.TrackNumber;
             track.DiscNumber = tags.DiscNumber;
             track.Year = tags.Year;
             track.DurationSeconds = tags.DurationSeconds;
             track.Genre = tags.Genre;
-            track.UpdatedAtUtc = DateTimeOffset.UtcNow;
+            track.IsMissing = false;
+            track.UpdatedAtUtc = now;
 
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogDebug("{Action} music track {TrackId} from {Path}", isNew ? "Indexed" : "Updated", track.Id, absolutePath);
             return true;
         }
         catch (OperationCanceledException)
@@ -87,20 +94,15 @@ public sealed class MusicCatalogService(
         }
     }
 
-    private async Task<MusicAlbum?> ResolveAlbumAsync(
-        Guid libraryId, AudioTags tags, CancellationToken cancellationToken)
+    private async Task<MusicAlbum?> ResolveAlbumAsync(Guid libraryId, AudioTags tags, CancellationToken cancellationToken)
     {
-        if (tags.Album is null)
-        {
-            return null;
-        }
+        if (tags.Album is null) return null;
 
         var artistName = tags.AlbumArtist ?? tags.TrackArtist;
         var albumKey = $"{Normalize(tags.Album)}|{Normalize(artistName)}";
         var album = await dbContext.Albums
             .SingleOrDefaultAsync(a => a.AlbumKey == albumKey && a.LibraryId == libraryId, cancellationToken)
             .ConfigureAwait(false)
-            // Entities added during this pass are not yet visible to database queries.
             ?? dbContext.Albums.Local.FirstOrDefault(a => a.AlbumKey == albumKey && a.LibraryId == libraryId);
 
         if (album is null)
@@ -133,19 +135,13 @@ public sealed class MusicCatalogService(
         return album;
     }
 
-    private async Task<MusicArtist?> ResolveArtistAsync(
-        Guid libraryId, string? name, CancellationToken cancellationToken)
+    private async Task<MusicArtist?> ResolveArtistAsync(Guid libraryId, string? name, CancellationToken cancellationToken)
     {
-        if (name is null)
-        {
-            return null;
-        }
-
+        if (string.IsNullOrWhiteSpace(name)) return null;
         var normalizedName = Normalize(name);
         var artist = await dbContext.Artists
             .SingleOrDefaultAsync(a => a.NormalizedName == normalizedName && a.LibraryId == libraryId, cancellationToken)
             .ConfigureAwait(false)
-            // Entities added during this pass are not yet visible to database queries.
             ?? dbContext.Artists.Local.FirstOrDefault(a => a.NormalizedName == normalizedName && a.LibraryId == libraryId);
 
         if (artist is null)
@@ -154,7 +150,7 @@ public sealed class MusicCatalogService(
             {
                 Id = Guid.NewGuid(),
                 LibraryId = libraryId,
-                Name = name,
+                Name = name.Trim(),
                 NormalizedName = normalizedName,
             };
             dbContext.Artists.Add(artist);
@@ -163,9 +159,7 @@ public sealed class MusicCatalogService(
         return artist;
     }
 
-    /// <summary>Case/whitespace-insensitive grouping key part.</summary>
-    internal static string Normalize(string? value) =>
-        (value ?? string.Empty).Trim().ToLowerInvariant();
+    internal static string Normalize(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
 
     private static string TrackTitleFromFile(string absolutePath)
     {
