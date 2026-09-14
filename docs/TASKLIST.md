@@ -1,24 +1,26 @@
 # oniDash Master Task List
 
-**Current milestone: Music Rebuild**
+**Current milestone: Music Rebuild — Phase 1 in progress**
 
 Agents execute the first applicable unchecked task in order. A task is complete only with implementation, relevant tests, handled UI states, documentation updates where needed, and actual verification evidence.
 
 ## 0 — Preparation / audit
-- [ ] Inventory current Music backend, database, API, frontend, player and tests.
-- [ ] Map existing Music functionality to the new Music contracts.
-- [ ] Identify broken/dead/duplicated code and mark it for replacement or removal.
-- [ ] Establish a regression baseline without claiming unverified existing tests pass.
-- [ ] Define migration strategy so existing catalogue/user state is preserved.
+- [x] Inventory current Music backend, database, API, frontend, player and tests.
+- [x] Map existing Music functionality to the new Music contracts.
+- [x] Identify broken/dead/duplicated code and mark it for replacement or removal.
+- [x] Establish a regression baseline without claiming unverified existing tests pass.
+- [x] Define migration strategy so existing catalogue/user state is preserved.
 
 ## 1 — Music domain and persistence
-- [ ] Define Track, Album, Artist, Genre, AlbumArtist, Disc and file relationships.
-- [ ] Define Favorite, Rating, PlayHistory and PlaybackState persistence.
-- [ ] Define Playlist, PlaylistItem and SmartPlaylist models.
-- [ ] Define Lyrics/LyricsVersion and Artwork models/provenance.
-- [ ] Add required indexes for library queries, history and search.
-- [ ] Add safe migrations and migration tests.
-- [ ] Define typed Music API DTOs; do not expose EF entities.
+- [x] Define Track, Album, Artist, Genre, AlbumArtist, Disc and file relationships.
+- [x] Define Favorite, Rating, PlayHistory and PlaybackState persistence.
+- [x] Define Playlist, PlaylistItem and SmartPlaylist models.
+- [x] Define Lyrics/LyricsVersion and Artwork models/provenance.
+- [x] Add required indexes for library queries, history and search.
+- [x] Add safe migration for the first Phase 1 persistence slice.
+- [ ] Add migration regression tests against an existing Music database.
+- [x] Define typed Music API DTOs; do not expose EF entities.
+- [ ] Regenerate and verify the EF model snapshot after the next local EF migration run.
 
 ## 2 — Library sources and scanning
 - [ ] Add/remove/validate Music library sources.
