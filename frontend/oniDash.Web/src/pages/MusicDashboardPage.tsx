@@ -1,1 +1,1 @@
-export { MusicDashboardPhase2Page as MusicDashboardPage } from './MusicDashboardPhase2Page';
+export { MusicDashboardHomePage as MusicDashboardPage } from './MusicDashboardHomePage';
