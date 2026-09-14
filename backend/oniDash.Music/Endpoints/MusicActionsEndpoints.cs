@@ -7,12 +7,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using oniDash.Music.Cataloging;
+using oniDash.Music.Actions;
 using oniDash.Music.Persistence;
 
 namespace oniDash.Music.Endpoints;
 
-/// <summary>Destructive/file-system operations are explicit and validated server-side.</summary>
+/// <summary>Explicit music actions. Files are never changed implicitly by metadata/catalogue operations.</summary>
 public static class MusicActionsEndpoints
 {
     private const int MaxLyricsCharacters = 1_000_000;
@@ -47,10 +47,7 @@ public static class MusicActionsEndpoints
             var location = await locator.LocateAsync(track.FileId, ct);
             if (location is null) return Results.NotFound();
             var path = Path.ChangeExtension(location.AbsolutePath, ".lrc");
-            try
-            {
-                await File.WriteAllTextAsync(path, request.Text.Replace("\r\n", "\n"), ct);
-            }
+            try { await File.WriteAllTextAsync(path, request.Text.Replace("\r\n", "\n"), ct); }
             catch (UnauthorizedAccessException) { return Results.Problem("Lyrics file is not writable.", statusCode: StatusCodes.Status403Forbidden); }
             catch (IOException) { return Results.Problem("Lyrics file could not be written.", statusCode: StatusCodes.Status503ServiceUnavailable); }
             return Results.Ok(new { path, synchronized = request.Synchronized });
@@ -81,46 +78,51 @@ public static class MusicActionsEndpoints
             var track = await db.Tracks.AsNoTracking().SingleOrDefaultAsync(t => t.Id == trackId, ct);
             if (track is null) return Results.NotFound();
             var location = await locator.LocateAsync(track.FileId, ct);
-            if (location is null) return Results.NotFound();
+            if (location is null || !File.Exists(location.AbsolutePath)) return Results.NotFound();
             var info = new FileInfo(location.AbsolutePath);
-            return Results.Ok(new { track.Id, track.Title, track.ArtistName, album = track.Album!.Title, track.Rating, path = info.FullName, sizeBytes = info.Length, modifiedUtc = info.LastWriteTimeUtc, extension = info.Extension.TrimStart('.').ToLowerInvariant() });
+            return Results.Ok(new { track.Id, track.Title, track.ArtistName, album = track.Album?.Title, track.Rating, path = info.FullName, sizeBytes = info.Length, modifiedUtc = info.LastWriteTimeUtc, extension = info.Extension.TrimStart('.').ToLowerInvariant() });
         });
 
-        music.MapPost("/tracks/{trackId:guid}/rename", async (MusicDbContext db, IMediaFileLocator locator, Guid trackId, RenameRequest request, CancellationToken ct) =>
+        music.MapPost("/tracks/{trackId:guid}/rename", async (MusicDbContext db, MusicFileService files, Guid trackId, RenameRequest request, CancellationToken ct) =>
         {
-            var name = Path.GetFileNameWithoutExtension(request.FileName ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(name) || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return Results.BadRequest(new { error = "Invalid file name." });
-            var track = await db.Tracks.SingleOrDefaultAsync(t => t.Id == trackId, ct);
-            if (track is null) return Results.NotFound();
-            var location = await locator.LocateAsync(track.FileId, ct);
-            if (location is null) return Results.NotFound();
-            var directory = Path.GetDirectoryName(location.AbsolutePath)!;
-            var destination = Path.Combine(directory, name + Path.GetExtension(location.AbsolutePath));
-            if (File.Exists(destination)) return Results.Conflict(new { error = "A file with that name already exists.", path = destination });
-            File.Move(location.AbsolutePath, destination);
-            return Results.Ok(new { path = destination });
+            var fileId = await db.Tracks.AsNoTracking().Where(t => t.Id == trackId).Select(t => (Guid?)t.FileId).SingleOrDefaultAsync(ct);
+            if (fileId is null) return Results.NotFound();
+            return ToResult(await files.RenameAsync(fileId.Value, request.FileName ?? string.Empty, ct));
         });
 
-        music.MapDelete("/tracks/{trackId:guid}", async (MusicDbContext db, IMediaFileLocator locator, Guid trackId, bool? deleteFile, CancellationToken ct) =>
+        music.MapPost("/tracks/{trackId:guid}/move", async (MusicDbContext db, MusicFileService files, Guid trackId, MoveRequest request, CancellationToken ct) =>
         {
-            var track = await db.Tracks.SingleOrDefaultAsync(t => t.Id == trackId, ct);
-            if (track is null) return Results.NotFound();
-            if (deleteFile == true)
-            {
-                var location = await locator.LocateAsync(track.FileId, ct);
-                if (location is null) return Results.NotFound();
-                File.Delete(location.AbsolutePath);
-            }
-            db.Tracks.Remove(track);
-            await db.SaveChangesAsync(ct);
-            return Results.NoContent();
+            var fileId = await db.Tracks.AsNoTracking().Where(t => t.Id == trackId).Select(t => (Guid?)t.FileId).SingleOrDefaultAsync(ct);
+            if (fileId is null) return Results.NotFound();
+            return ToResult(await files.MoveAsync(fileId.Value, request.RelativeDirectory ?? string.Empty, ct));
+        });
+
+        music.MapPost("/tracks/{trackId:guid}/remove-from-library", async (MusicDbContext db, MusicFileService files, Guid trackId, CancellationToken ct) =>
+        {
+            var fileId = await db.Tracks.AsNoTracking().Where(t => t.Id == trackId).Select(t => (Guid?)t.FileId).SingleOrDefaultAsync(ct);
+            if (fileId is null) return Results.NotFound();
+            return ToResult(await files.RemoveFromLibraryAsync(fileId.Value, ct));
+        });
+
+        music.MapDelete("/tracks/{trackId:guid}", async (MusicDbContext db, MusicFileService files, Guid trackId, DeleteRequest request, CancellationToken ct) =>
+        {
+            var fileId = await db.Tracks.AsNoTracking().Where(t => t.Id == trackId).Select(t => (Guid?)t.FileId).SingleOrDefaultAsync(ct);
+            if (fileId is null) return Results.NotFound();
+            if (!request.Confirmed) return Results.Conflict(new { error = "Deleting a file requires explicit confirmation." });
+            return ToResult(await files.DeleteFromDiskAsync(fileId.Value, true, ct));
         });
 
         return app;
     }
 
+    private static IResult ToResult(FileOperationResult result) => result.Success
+        ? Results.Ok(new { changed = result.Changed, path = result.Path })
+        : Results.Problem(statusCode: result.StatusCode, title: "Music file operation failed", detail: result.Error);
+
     private static bool HasLrcTimestamps(string text) => text.Split('\n').Any(line => line.Length >= 4 && line[0] == '[' && line.IndexOf(']') > 1);
     public sealed record RatingRequest(int Rating);
     public sealed record RenameRequest(string? FileName);
+    public sealed record MoveRequest(string? RelativeDirectory);
+    public sealed record DeleteRequest(bool Confirmed);
     public sealed record LyricsRequest(string Text, bool Synchronized);
 }
