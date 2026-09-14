@@ -26,7 +26,7 @@ public sealed class PlaceholderMediaItemResolver(IMediaItemRepository items) : I
     }
 }
 
-public enum IndexedMediaChangeKind { New, Updated, Unchanged }
+public enum IndexedMediaChangeKind { New, Updated, Moved, Unchanged }
 
 public sealed record IndexedMediaContext(LibrarySource Source, DiscoveredFile File, Guid FileRowId, Guid MediaItemId, IndexedMediaChangeKind ChangeKind)
 {
@@ -38,7 +38,11 @@ public interface IIndexedMediaHandler
     Task HandleAsync(IndexedMediaContext context, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Discovery is completed before writes; individual enrichment failures are isolated as diagnostics.</summary>
+/// <summary>
+/// Scans a source in two phases: discovery first, then reconciliation/indexing. Missing rows
+/// are retained. A unique same-size/same-write-time missing row may be reconciled as a move;
+/// ambiguous matches are never guessed.
+/// </summary>
 public sealed class ScanService(
     ILibrarySourceRepository sourceRepository,
     IMediaFileRepository fileRepository,
@@ -56,7 +60,6 @@ public sealed class ScanService(
         var existing = (await fileRepository.ListBySourceAsync(sourceId, cancellationToken).ConfigureAwait(false))
             .ToDictionary(file => file.IdentityKey, StringComparer.Ordinal);
         var seenKeys = new HashSet<string>(StringComparer.Ordinal);
-        var handlers = (mediaHandlers ?? []).ToArray();
         var diagnostics = new List<ScanDiagnostic>();
         long discovered = 0, indexed = 0, updated = 0, unchanged = 0;
         var discoveredFiles = new List<DiscoveredFile>();
@@ -80,24 +83,66 @@ public sealed class ScanService(
             IndexedMediaChangeKind changeKind;
             Guid mediaItemId;
             Guid fileRowId;
-            if (!existing.TryGetValue(identityKey, out var row))
+
+            if (existing.TryGetValue(identityKey, out var row))
             {
-                mediaItemId = await itemResolver.ResolveForNewFileAsync(source, file, cancellationToken).ConfigureAwait(false);
-                row = new MediaFile { MediaItemId = mediaItemId, LibrarySourceId = sourceId, RelativePath = file.RelativePath,
-                    IdentityKey = identityKey, Extension = file.Extension, SizeBytes = file.SizeBytes, LastWriteTimeUtc = file.LastWriteTimeUtc };
-                await fileRepository.AddAsync(row, cancellationToken).ConfigureAwait(false);
-                indexed++; changeKind = IndexedMediaChangeKind.New; fileRowId = row.Id;
+                if (row.SizeBytes != file.SizeBytes || row.LastWriteTimeUtc != file.LastWriteTimeUtc || row.MissingSinceUtc is not null)
+                {
+                    row.SizeBytes = file.SizeBytes;
+                    row.LastWriteTimeUtc = file.LastWriteTimeUtc;
+                    row.MissingSinceUtc = null;
+                    await fileRepository.UpdateAsync(row, cancellationToken).ConfigureAwait(false);
+                    updated++;
+                    changeKind = IndexedMediaChangeKind.Updated;
+                }
+                else
+                {
+                    unchanged++;
+                    changeKind = IndexedMediaChangeKind.Unchanged;
+                }
+                fileRowId = row.Id;
+                mediaItemId = row.MediaItemId;
             }
-            else if (row.SizeBytes != file.SizeBytes || row.LastWriteTimeUtc != file.LastWriteTimeUtc || row.MissingSinceUtc is not null)
+            else
             {
-                row.SizeBytes = file.SizeBytes; row.LastWriteTimeUtc = file.LastWriteTimeUtc; row.MissingSinceUtc = null;
-                await fileRepository.UpdateAsync(row, cancellationToken).ConfigureAwait(false);
-                updated++; changeKind = IndexedMediaChangeKind.Updated; fileRowId = row.Id; mediaItemId = row.MediaItemId;
+                row = FindUniqueMoveCandidate(existing.Values, seenKeys, file);
+                if (row is not null)
+                {
+                    existing.Remove(row.IdentityKey);
+                    row.RelativePath = file.RelativePath;
+                    row.IdentityKey = identityKey;
+                    row.Extension = file.Extension;
+                    row.SizeBytes = file.SizeBytes;
+                    row.LastWriteTimeUtc = file.LastWriteTimeUtc;
+                    row.MissingSinceUtc = null;
+                    await fileRepository.UpdateAsync(row, cancellationToken).ConfigureAwait(false);
+                    changeKind = IndexedMediaChangeKind.Moved;
+                    updated++;
+                    fileRowId = row.Id;
+                    mediaItemId = row.MediaItemId;
+                }
+                else
+                {
+                    mediaItemId = await itemResolver.ResolveForNewFileAsync(source, file, cancellationToken).ConfigureAwait(false);
+                    row = new MediaFile
+                    {
+                        MediaItemId = mediaItemId,
+                        LibrarySourceId = sourceId,
+                        RelativePath = file.RelativePath,
+                        IdentityKey = identityKey,
+                        Extension = file.Extension,
+                        SizeBytes = file.SizeBytes,
+                        LastWriteTimeUtc = file.LastWriteTimeUtc,
+                    };
+                    await fileRepository.AddAsync(row, cancellationToken).ConfigureAwait(false);
+                    indexed++;
+                    changeKind = IndexedMediaChangeKind.New;
+                    fileRowId = row.Id;
+                }
             }
-            else { unchanged++; changeKind = IndexedMediaChangeKind.Unchanged; fileRowId = row.Id; mediaItemId = row.MediaItemId; }
 
             var context = new IndexedMediaContext(source, file, fileRowId, mediaItemId, changeKind);
-            foreach (var handler in handlers)
+            foreach (var handler in mediaHandlers ?? [])
             {
                 try { await handler.HandleAsync(context, cancellationToken).ConfigureAwait(false); }
                 catch (OperationCanceledException) { throw; }
@@ -107,18 +152,37 @@ public sealed class ScanService(
                         "HANDLER_FAILED", $"Media handler '{handler.GetType().Name}' failed: {ex.Message}"));
                 }
             }
+
             processed++;
             if (processed % IndexingProgressBatch == 0)
                 onProgress?.Invoke(new ScanProgressUpdate(ScanPhase.Indexing, discovered, processed, indexed, updated, unchanged, 0));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var missingIds = existing.Values.Where(row => !seenKeys.Contains(row.IdentityKey) && row.MissingSinceUtc is null).Select(row => row.Id).ToList();
-        if (missingIds.Count > 0) await fileRepository.MarkMissingAsync(missingIds, DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
+        var missingIds = existing.Values
+            .Where(row => !seenKeys.Contains(row.IdentityKey) && row.MissingSinceUtc is null)
+            .Select(row => row.Id)
+            .ToList();
+        if (missingIds.Count > 0)
+            await fileRepository.MarkMissingAsync(missingIds, DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
+
         await sourceRepository.UpdateLastScannedAsync(sourceId, DateTimeOffset.UtcNow, cancellationToken).ConfigureAwait(false);
         onProgress?.Invoke(new ScanProgressUpdate(ScanPhase.Done, discovered, discovered, indexed, updated, unchanged, missingIds.Count));
         return new ScanOutcome(discovered, indexed, updated, unchanged, missingIds.Count, DateTimeOffset.UtcNow, diagnostics);
     }
 
-    private static string BuildIdentityKey(Guid sourceId, string relativePath) => $"{sourceId:N}/{relativePath.ToLowerInvariant()}";
+    private static MediaFile? FindUniqueMoveCandidate(IEnumerable<MediaFile> rows, ISet<string> seenKeys, DiscoveredFile file)
+    {
+        var candidates = rows
+            .Where(row => !seenKeys.Contains(row.IdentityKey)
+                && row.MissingSinceUtc is not null
+                && row.SizeBytes == file.SizeBytes
+                && row.LastWriteTimeUtc == file.LastWriteTimeUtc
+                && string.Equals(row.Extension, file.Extension, StringComparison.OrdinalIgnoreCase))
+            .Take(2)
+            .ToList();
+        return candidates.Count == 1 ? candidates[0] : null;
+    }
+
+    private static string BuildIdentityKey(Guid sourceId, string relativePath) => $"{sourceId:N}/{relativePath.Replace('\\', '/').TrimStart('/').ToLowerInvariant()}";
 }
