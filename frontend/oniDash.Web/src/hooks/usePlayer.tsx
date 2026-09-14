@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { playerService, type PlayerSnapshot, type RepeatMode } from '../player/playerService';
 import type { TrackSummary } from '../api/music';
 
@@ -25,12 +25,7 @@ export type PlayerState = PlayerSnapshot & {
 const PlayerContext = createContext<PlayerState | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const snapshot = useSyncExternalStore(
-    listener => playerService.subscribe(listener),
-    () => playerService.snapshot(),
-    () => playerService.snapshot(),
-  );
-  useEffect(() => { const timer = window.setInterval(() => playerService.getAudioElement(), 1000); return () => window.clearInterval(timer); }, []);
+  const snapshot = useSyncExternalStore(listener => playerService.subscribe(listener), () => playerService.snapshot(), () => playerService.snapshot());
   const value = useMemo<PlayerState>(() => ({
     ...snapshot,
     toggle: track => playerService.toggle(track),
