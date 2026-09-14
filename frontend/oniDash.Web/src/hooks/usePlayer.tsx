@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { playerService, type PlayerSnapshot, type RepeatMode } from '../player/playerService';
 import type { TrackSummary } from '../api/music';
 
@@ -26,6 +26,19 @@ const PlayerContext = createContext<PlayerState | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const snapshot = useSyncExternalStore(listener => playerService.subscribe(listener), () => playerService.snapshot(), () => playerService.snapshot());
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.tagName === 'SELECT') return;
+      if (event.code === 'Space') { event.preventDefault(); if (playerService.snapshot().current) playerService.toggle(playerService.snapshot().current); }
+      else if (event.code === 'ArrowRight' && event.shiftKey) { event.preventDefault(); playerService.seek(playerService.snapshot().position + 10); }
+      else if (event.code === 'ArrowLeft' && event.shiftKey) { event.preventDefault(); playerService.seek(playerService.snapshot().position - 10); }
+      else if (event.code === 'ArrowRight') { event.preventDefault(); void playerService.advance(); }
+      else if (event.code === 'ArrowLeft') { event.preventDefault(); playerService.previous(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
   const value = useMemo<PlayerState>(() => ({
     ...snapshot,
     toggle: track => playerService.toggle(track),
