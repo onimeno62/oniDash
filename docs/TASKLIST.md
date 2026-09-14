@@ -1,6 +1,6 @@
 # oniDash Master Task List
 
-**Current milestone: Music Rebuild — Phase 9 next**
+**Current milestone: Music Rebuild — hardening and native Windows playback**
 
 Agents execute the first applicable unchecked task in order. A task is complete only with implementation, relevant tests, handled UI states, documentation updates where needed, and actual verification evidence.
 
@@ -42,7 +42,8 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [x] Multi-field track search across title, artist and album artist.
 - [ ] Virtualized Songs table.
 - [ ] Multi-select and keyboard navigation.
-- [ ] Loading/empty/error/retry/missing-file states.
+- [x] Loading/empty/error/retry states on Music Home.
+- [ ] Complete missing-file-specific browse states across all Music library views.
 
 ## 4 — File management
 - [x] Safe single-track rename with source-root validation and index reconciliation.
@@ -79,11 +80,11 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [x] Play/pause.
 - [x] Seek.
 - [x] Previous/next.
-- [x] Queue add/remove/reorder/clear (reorder remains UI-only for now).
+- [x] Queue add/remove/reorder/clear API; UI reorder remains pending.
 - [x] Play Next.
 - [x] Shuffle.
 - [x] Repeat Off/All/One.
-- [x] Volume/mute/output volume control (device selection remains pending).
+- [x] Volume/mute/output volume control; device selection remains pending.
 - [x] Persist playback position and history.
 - [x] Handle load/seek/decode errors without corrupting queue state.
 - [ ] Gapless playback where supported.
@@ -120,49 +121,53 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [x] Provider failure and no-match states.
 
 ## 9 — Collections and history
-- [ ] Favorite/unfavorite track/album/artist behavior.
+- [x] Favorite/unfavorite track behavior and existing album/artist favorite API.
 - [x] 0–5 star rating behavior.
 - [x] Play history recording rules for natural track completion.
-- [ ] Recently Added query.
-- [ ] Recently Played query.
-- [ ] Most Played query.
-- [ ] Never Played query.
-- [ ] Top Rated query.
-- [ ] Normal playlists.
-- [ ] Playlist reorder/remove/queue/play.
-- [ ] Smart playlist rule model.
+- [x] Recently Added query.
+- [x] Recently Played query.
+- [x] Most Played query.
+- [x] Never Played query.
+- [x] Top Rated query.
+- [x] Normal playlist creation and persistence.
+- [x] Playlist reorder/remove/queue/play API.
+- [ ] Smart playlist rule model verification and rule builder UI.
 - [ ] Smart playlist rule builder.
-- [ ] Save queue as playlist.
+- [x] Save queue as playlist.
 
 ## 10 — Music Home
-- [ ] Continue Listening backed by persisted playback state.
-- [ ] Recently Played carousel.
-- [ ] Recently Added carousel.
-- [ ] Most Played carousel.
-- [ ] Favorites carousel.
-- [ ] Top Rated carousel.
-- [ ] Album/artist/genre discovery sections.
-- [ ] Playlist section.
-- [ ] Library totals.
-- [ ] Useful music-library health signals.
-- [ ] Empty/new-library onboarding.
-- [ ] Remove dead/placeholder dashboard controls.
+- [x] Continue Listening backed by persisted playback state, including direct track resolution.
+- [x] Recently Played carousel.
+- [x] Recently Added carousel.
+- [x] Most Played carousel.
+- [x] Favorites carousel.
+- [x] Top Rated carousel.
+- [x] Album/artist/playlist discovery sections.
+- [x] Playlist section.
+- [x] Library totals/overview statistics.
+- [ ] Useful music-library health signals beyond basic totals.
+- [x] Empty/new-library onboarding state.
+- [x] Remove dead/placeholder dashboard retry and layout controls.
+- [x] Standard and Bento dashboard layouts have distinct rendering behavior.
 
 ## 11 — Windows integration and hardening
-- [ ] Media-key integration boundary.
+- [x] Application keyboard shortcut map for player controls.
+- [ ] Native Windows media-key integration boundary.
 - [ ] Windows output-device change handling.
-- [ ] Native notifications/Now Playing integration where appropriate.
+- [ ] Native notifications/Now Playing integration where appropriate; browser Media Session exists but is not native Windows integration.
 - [ ] Drag/drop files and folders.
-- [ ] Keyboard shortcut map.
+- [ ] Native Windows Explorer location integration.
 - [ ] Large-library performance profiling.
 - [ ] Crash/restart recovery for scanner and player.
 - [ ] End-to-end Music regression suite.
 - [ ] Accessibility pass.
 - [ ] Final destructive-operation safety audit.
+- [x] Add GitHub Actions CI workflow for backend restore/build/test and frontend install/build/test.
+- [ ] Obtain and fix actual green CI verification evidence.
 
 ## Global acceptance criteria
 - [ ] No visible Music control is fake or dead.
-- [ ] No Music page directly touches SQLite or the filesystem.
+- [x] No Music page directly touches SQLite or the filesystem.
 - [x] Playback is independent of React page lifecycle.
 - [x] Library queries are server/database backed and bounded to server-side pages.
 - [x] External metadata provider results are explicitly read-only proposals.
