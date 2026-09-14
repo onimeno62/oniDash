@@ -1,37 +1,60 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { trackStreamUrl, type TrackSummary } from '../api/music';
+import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import { playerService, type PlayerSnapshot, type RepeatMode } from '../player/playerService';
+import type { TrackSummary } from '../api/music';
 
-type RepeatMode = 'off' | 'track' | 'queue';
-interface PlayerState { current: { track: TrackSummary } | null; playing: boolean; position: number; duration: number; queue: TrackSummary[]; queueIndex: number; repeatMode: RepeatMode; shuffle: boolean; gapless: boolean; toggle: (track: TrackSummary) => void; playQueue: (tracks: TrackSummary[], index?: number) => void; enqueue: (track: TrackSummary) => void; playNext: (track: TrackSummary) => void; next: () => void; previous: () => void; seek: (seconds: number) => void; setShuffle: (enabled: boolean) => void; cycleRepeat: () => void; setGapless: (enabled: boolean) => void; stop: () => void; clearQueue: () => void; removeFromQueue: (trackId: string) => void; }
+export type { RepeatMode };
+export type PlayerState = PlayerSnapshot & {
+  toggle: (track: TrackSummary) => void;
+  playQueue: (tracks: TrackSummary[], index?: number) => void;
+  enqueue: (track: TrackSummary) => void;
+  playNext: (track: TrackSummary) => void;
+  next: () => void;
+  previous: () => void;
+  seek: (seconds: number) => void;
+  setShuffle: (enabled: boolean) => void;
+  cycleRepeat: () => void;
+  setGapless: (enabled: boolean) => void;
+  setVolume: (value: number) => void;
+  setMuted: (muted: boolean) => void;
+  stop: () => void;
+  clearQueue: () => void;
+  removeFromQueue: (trackId: string) => void;
+  audioElement: HTMLAudioElement;
+};
+
 const PlayerContext = createContext<PlayerState | null>(null);
-const STORAGE_KEY = 'onidash.player.v2';
-type PersistedPlayer = { queue: TrackSummary[]; queueIndex: number; position: number; repeatMode: RepeatMode; shuffle: boolean; gapless: boolean };
-function readPersisted(): PersistedPlayer { try { const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Partial<PersistedPlayer> | null; if (parsed && Array.isArray(parsed.queue)) return { queue: parsed.queue, queueIndex: Math.max(0, Math.min(parsed.queueIndex ?? 0, Math.max(0, parsed.queue.length - 1))), position: Math.max(0, parsed.position ?? 0), repeatMode: parsed.repeatMode === 'track' || parsed.repeatMode === 'queue' ? parsed.repeatMode : 'off', shuffle: parsed.shuffle === true, gapless: parsed.gapless === true }; } catch {} return { queue: [], queueIndex: 0, position: 0, repeatMode: 'off', shuffle: false, gapless: false }; }
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const primaryRef = useRef<HTMLAudioElement | null>(null); const secondaryRef = useRef<HTMLAudioElement | null>(null); const activeRef = useRef<0 | 1>(0); const initial = useMemo(readPersisted, []); const [queue, setQueue] = useState(initial.queue); const [queueIndex, setQueueIndex] = useState(initial.queueIndex); const [current, setCurrent] = useState<TrackSummary | null>(initial.queue[initial.queueIndex] ?? null); const [playing, setPlaying] = useState(false); const [position, setPosition] = useState(initial.position); const [duration, setDuration] = useState(initial.queue[initial.queueIndex]?.durationSeconds ?? 0); const [repeatMode, setRepeatMode] = useState<RepeatMode>(initial.repeatMode); const [shuffle, setShuffleState] = useState(initial.shuffle); const [gapless, setGaplessState] = useState(initial.gapless); const saveTimer = useRef<number | undefined>(undefined);
-  const active = useCallback(() => activeRef.current === 0 ? primaryRef.current : secondaryRef.current, []); const inactive = useCallback(() => activeRef.current === 0 ? secondaryRef.current : primaryRef.current, []);
-  const persist = useCallback((next: Partial<PersistedPlayer> = {}) => { window.clearTimeout(saveTimer.current); window.setTimeout(() => localStorage.setItem(STORAGE_KEY, JSON.stringify({ queue: next.queue ?? queue, queueIndex: next.queueIndex ?? queueIndex, position: next.position ?? position, repeatMode: next.repeatMode ?? repeatMode, shuffle: next.shuffle ?? shuffle, gapless: next.gapless ?? gapless })), 250); }, [gapless, position, queue, queueIndex, repeatMode, shuffle]);
-  const stopAudio = useCallback((audio: HTMLAudioElement | null) => { if (!audio) return; audio.pause(); audio.removeAttribute('src'); audio.load(); }, []);
-  const loadInto = useCallback((audio: HTMLAudioElement, track: TrackSummary, startPosition = 0) => { audio.src = trackStreamUrl(track.id); audio.currentTime = startPosition; audio.load(); }, []);
-  const loadTrack = useCallback((track: TrackSummary, index: number, autoplay = true, startPosition = 0) => { const audio = active(); const other = inactive(); if (!audio) return; stopAudio(other); loadInto(audio, track, startPosition); setCurrent(track); setQueueIndex(index); setPosition(startPosition); setDuration(track.durationSeconds ?? 0); if (autoplay) { setPlaying(true); void audio.play().catch(() => setPlaying(false)); } }, [active, inactive, loadInto, stopAudio]);
-  const preloadNext = useCallback(() => { if (!gapless || queue.length < 2) return; const nextIndex = shuffle ? (queueIndex + 1) % queue.length : queueIndex + 1; if (nextIndex >= queue.length && repeatMode !== 'queue') return; const track = queue[nextIndex % queue.length]; const other = inactive(); if (other && track) loadInto(other, track); }, [gapless, inactive, loadInto, queue, queueIndex, repeatMode, shuffle]);
-  const playQueue = useCallback((tracks: TrackSummary[], index = 0) => { if (!tracks.length) return; const safe = Math.max(0, Math.min(index, tracks.length - 1)); setQueue(tracks); loadTrack(tracks[safe], safe); }, [loadTrack]);
-  const toggle = useCallback((track: TrackSummary) => { const audio = active(); if (!audio) return; if (current?.id === track.id) { if (audio.paused) { setPlaying(true); void audio.play().catch(() => setPlaying(false)); } else audio.pause(); return; } const existing = queue.findIndex((item) => item.id === track.id); existing >= 0 ? loadTrack(track, existing) : playQueue([track]); }, [active, current?.id, loadTrack, playQueue, queue]);
-  const enqueue = useCallback((track: TrackSummary) => setQueue((items) => { if (items.some((item) => item.id === track.id)) return items; const next = [...items, track]; persist({ queue: next }); return next; }), [persist]);
-  const playNext = useCallback((track: TrackSummary) => setQueue((items) => { const without = items.filter((item) => item.id !== track.id); const insertAt = Math.min(queueIndex + 1, without.length); const next = [...without.slice(0, insertAt), track, ...without.slice(insertAt)]; persist({ queue: next }); return next; }), [persist, queueIndex]);
-  const next = useCallback(() => { if (!queue.length) return; if (repeatMode === 'track' && current) { loadTrack(current, queueIndex); return; } let nextIndex = shuffle && queue.length > 1 ? Math.floor(Math.random() * queue.length) : queueIndex + 1; if (nextIndex >= queue.length) { if (repeatMode !== 'queue') { setPlaying(false); return; } nextIndex = 0; } const old = active(); const other = inactive(); const track = queue[nextIndex]; if (gapless && other && other.src.includes(trackStreamUrl(track.id))) { activeRef.current = activeRef.current === 0 ? 1 : 0; stopAudio(old); setCurrent(track); setQueueIndex(nextIndex); setPosition(0); setDuration(track.durationSeconds ?? 0); setPlaying(true); void active()?.play().catch(() => setPlaying(false)); } else loadTrack(track, nextIndex); }, [active, current, gapless, inactive, loadTrack, queue, queueIndex, repeatMode, shuffle, stopAudio]);
-  const previous = useCallback(() => { const audio = active(); if (audio && audio.currentTime > 5) { audio.currentTime = 0; setPosition(0); return; } const index = Math.max(0, queueIndex - 1); if (queue[index]) loadTrack(queue[index], index); }, [active, loadTrack, queue, queueIndex]);
-  const seek = useCallback((seconds: number) => { const audio = active(); if (audio && Number.isFinite(seconds)) { audio.currentTime = seconds; setPosition(seconds); } }, [active]);
-  const setShuffle = useCallback((enabled: boolean) => { setShuffleState(enabled); persist({ shuffle: enabled }); }, [persist]);
-  const cycleRepeat = useCallback(() => setRepeatMode((mode) => { const nextMode = mode === 'off' ? 'track' : mode === 'track' ? 'queue' : 'off'; persist({ repeatMode: nextMode }); return nextMode; }), [persist]);
-  const setGapless = useCallback((enabled: boolean) => { setGaplessState(enabled); persist({ gapless: enabled }); }, [persist]);
-  const clearQueue = useCallback(() => { const keep = current ? [current] : []; setQueue(keep); setQueueIndex(0); persist({ queue: keep, queueIndex: 0 }); }, [current, persist]);
-  const removeFromQueue = useCallback((trackId: string) => setQueue((items) => { const index = items.findIndex((item) => item.id === trackId); if (index < 0) return items; const next = items.filter((item) => item.id !== trackId); const nextIndex = index < queueIndex ? queueIndex - 1 : Math.min(queueIndex, Math.max(0, next.length - 1)); setQueueIndex(nextIndex); persist({ queue: next, queueIndex: nextIndex }); return next; }), [persist, queueIndex]);
-  const stop = useCallback(() => { stopAudio(primaryRef.current); stopAudio(secondaryRef.current); setCurrent(null); setPlaying(false); setPosition(0); setDuration(0); setQueueIndex(0); setQueue([]); persist({ queue: [], queueIndex: 0, position: 0 }); }, [persist, stopAudio]);
-  useEffect(() => { if (!gapless) return; preloadNext(); }, [gapless, preloadNext, queueIndex]);
-  useEffect(() => () => { stopAudio(primaryRef.current); stopAudio(secondaryRef.current); window.clearTimeout(saveTimer.current); }, [stopAudio]);
-  const value = useMemo<PlayerState>(() => ({ current: current ? { track: current } : null, playing, position, duration, queue, queueIndex, repeatMode, shuffle, gapless, toggle, playQueue, enqueue, playNext, next, previous, seek, setShuffle, cycleRepeat, setGapless, stop, clearQueue, removeFromQueue }), [current, playing, position, duration, queue, queueIndex, repeatMode, shuffle, gapless, toggle, playQueue, enqueue, playNext, next, previous, seek, setShuffle, cycleRepeat, setGapless, stop, clearQueue, removeFromQueue]);
-  return <PlayerContext.Provider value={value}><audio ref={primaryRef} preload="auto" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={next} onTimeUpdate={(event) => { if (event.currentTarget === active()) { setPosition(event.currentTarget.currentTime); persist({ position: event.currentTarget.currentTime }); } }} onLoadedMetadata={(event) => { if (event.currentTarget === active()) setDuration(event.currentTarget.duration || 0); }} onError={() => setPlaying(false)} /><audio ref={secondaryRef} preload="auto" onEnded={next} onError={() => setPlaying(false)} />{children}</PlayerContext.Provider>;
+  const snapshot = useSyncExternalStore(
+    listener => playerService.subscribe(listener),
+    () => playerService.snapshot(),
+    () => playerService.snapshot(),
+  );
+  useEffect(() => { const timer = window.setInterval(() => playerService.getAudioElement(), 1000); return () => window.clearInterval(timer); }, []);
+  const value = useMemo<PlayerState>(() => ({
+    ...snapshot,
+    toggle: track => playerService.toggle(track),
+    playQueue: (tracks, index) => playerService.playQueue(tracks, index),
+    enqueue: track => playerService.enqueue(track),
+    playNext: track => playerService.playNext(track),
+    next: () => void playerService.advance(),
+    previous: () => playerService.previous(),
+    seek: seconds => playerService.seek(seconds),
+    setShuffle: enabled => playerService.setShuffle(enabled),
+    cycleRepeat: () => playerService.cycleRepeat(),
+    setGapless: enabled => playerService.setGapless(enabled),
+    setVolume: volume => playerService.setVolume(volume),
+    setMuted: muted => playerService.setMuted(muted),
+    stop: () => playerService.stop(),
+    clearQueue: () => playerService.clearQueue(),
+    removeFromQueue: trackId => playerService.removeFromQueue(trackId),
+    audioElement: playerService.getAudioElement(),
+  }), [snapshot]);
+  return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
-export function usePlayer(): PlayerState { const context = useContext(PlayerContext); if (!context) throw new Error('usePlayer must be used inside <PlayerProvider>.'); return context; }
+
+export function usePlayer(): PlayerState {
+  const context = useContext(PlayerContext);
+  if (!context) throw new Error('usePlayer must be used inside <PlayerProvider>.');
+  return context;
+}
