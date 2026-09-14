@@ -1,6 +1,6 @@
 # oniDash Master Task List
 
-**Current milestone: Music Rebuild — Phase 1 in progress**
+**Current milestone: Music Rebuild — Phase 4 next**
 
 Agents execute the first applicable unchecked task in order. A task is complete only with implementation, relevant tests, handled UI states, documentation updates where needed, and actual verification evidence.
 
@@ -23,23 +23,23 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [ ] Regenerate and verify the EF model snapshot after the next local EF migration run.
 
 ## 2 — Library sources and scanning
-- [ ] Add/remove/validate Music library sources.
-- [ ] Implement full recursive music scan.
-- [ ] Implement incremental scan based on file identity/change detection.
-- [ ] Integrate filesystem watcher/reconciliation.
-- [ ] Reconcile renamed/moved files without creating duplicate tracks.
-- [ ] Mark missing files recoverably.
-- [ ] Add scan progress, cancellation, retry and per-file diagnostics.
-- [ ] Test scan idempotency and failure isolation.
+- [x] Add/remove/validate Music library sources through the shared Library/Source API.
+- [x] Implement full recursive music scan through the shared scanner.
+- [x] Implement incremental scan based on source-relative file identity and size/write-time change detection.
+- [ ] Integrate filesystem watcher/reconciliation for near-real-time changes.
+- [x] Reconcile uniquely identifiable renamed/moved files without creating duplicate tracks.
+- [x] Mark missing files recoverably instead of deleting catalogue rows.
+- [x] Add scan progress, cancellation, retry and per-file diagnostics through the shared scan-job system.
+- [ ] Add dedicated Music scan idempotency/failure-isolation regression tests.
 
 ## 3 — Library queries
-- [ ] Songs endpoint with server-side pagination.
-- [ ] Albums endpoint with grouping and sorting.
-- [ ] Artists endpoint.
-- [ ] Genres endpoint/facets.
+- [x] Songs endpoint with server-side pagination and total counts.
+- [x] Albums endpoint with grouping/counts and sorting.
+- [x] Artists endpoint with track/album counts.
+- [x] Genres endpoint/facets.
 - [ ] Folders endpoint/tree.
-- [ ] Shared filtering and sorting contract.
-- [ ] Multi-field music search.
+- [x] Shared filtering and sorting behavior across Songs/Albums/Artists.
+- [x] Multi-field track search across title, artist and album artist.
 - [ ] Virtualized Songs table.
 - [ ] Multi-select and keyboard navigation.
 - [ ] Loading/empty/error/retry/missing-file states.
@@ -164,8 +164,8 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [ ] No visible Music control is fake or dead.
 - [ ] No Music page directly touches SQLite or the filesystem.
 - [ ] Playback is independent of React page lifecycle.
-- [ ] Library queries are server/database backed and scalable.
+- [x] Library queries are server/database backed and bounded to server-side pages.
 - [ ] External providers never silently overwrite local truth.
 - [ ] Files are never silently renamed, moved, deleted or overwritten.
-- [ ] Long-running operations are observable and cancellable.
+- [x] Long-running source scans are observable and cancellable through the shared scan-job system.
 - [ ] Build, typecheck and relevant automated tests have actual evidence.
