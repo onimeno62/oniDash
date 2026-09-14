@@ -1,69 +1,67 @@
 # oniDash Roadmap
 
-This roadmap is a gated execution plan. A milestone is complete only when its acceptance criteria and relevant tasks are complete and verified.
+This is a gated execution plan. A milestone is complete only when its acceptance criteria and relevant tasks are implemented and verified with evidence.
 
-## Phase 0 — Repository / architecture [COMPLETE]
-Solution, documentation, build conventions, dependency rules.
+## Phase 0 — Platform foundation
+Existing shared Core/Application/Infrastructure, jobs, scanner/indexer, metadata/artwork contracts and global search are retained and hardened as needed.
 
-## Phase 1 — Application shell [COMPLETE]
-ASP.NET host, React app, design system, themes, shell, routing, settings and health.
+## Phase 1 — Music rebuild [CURRENT]
+Rebuild Music as a complete local music manager/player on top of the platform foundation. Do not begin later catalogue work until the Music gate passes.
 
-## Phase 2 — Core library [COMPLETE]
-SQLite, EF persistence, Library, Source, MediaItem, MediaFile, Artwork, Tag, Collection and basic APIs.
+### Gate A — Music domain and library foundation
+- [ ] Canonical music entities and relationships are documented and mapped safely.
+- [ ] Music library sources and scan/reconciliation lifecycle are reliable.
+- [ ] Server-side songs/albums/artists/genres/folders queries work.
+- [ ] Search/filter/sort/pagination work on large libraries.
+- [ ] Missing/moved/changed files reconcile without duplicate rows.
 
-## Phase 3 — Filesystem indexing [COMPLETE / HARDEN]
-Scanner, safe traversal, background jobs, progress, cancellation, identity-based indexing and missing-file handling exist. The next milestone must harden these foundations into one canonical indexing pipeline.
+### Gate B — File management
+- [ ] Rename/move/delete/open-location operations are backend-owned and tested.
+- [ ] Bulk operations validate and report per-file results.
+- [ ] Organization templates support preview/dry-run.
+- [ ] Duplicate detection is available without automatic destructive merging.
 
-## Phase 4 — Search [FOUNDATION EXISTS / HARDEN]
-SQLite FTS5, ranking, prefix/multi-term search and recovery exist. Next: canonical cross-media search contract, incremental indexing and health diagnostics.
+### Gate C — Metadata and artwork
+- [ ] Single and bulk tag editing works.
+- [ ] Tag writes are safe and verified.
+- [ ] MusicBrainz/AcoustID enrichment is optional and preview-before-apply.
+- [ ] Artwork extraction/cache and provider enrichment work with provenance.
 
-## Phase 5 — Music [SUBSTANTIAL / HARDEN]
-Music backend and premium workspace are established. Next: contract alignment, build/type hardening, health/duplicates, playback polish and Windows integration boundaries.
+### Gate D — Playback
+- [ ] Application-scoped player survives navigation.
+- [ ] Play/pause/seek/previous/next/queue/play-next/shuffle/repeat work.
+- [ ] Volume/output-device handling works.
+- [ ] Playback history and resume state persist.
+- [ ] Gapless/crossfade/ReplayGain degrade cleanly when unsupported.
 
-## Phase 6 — Movies [FOUNDATION EXISTS]
-Movie detection, metadata, artwork, streaming and progress exist. Next: integrate fully with the canonical platform scanner/metadata pipeline.
+### Gate E — Lyrics and visualization
+- [ ] Embedded/local/provider lyrics work.
+- [ ] Plain and synchronized lyrics render correctly.
+- [ ] Lyrics can be saved and edited safely.
+- [ ] Click-to-seek synced lyrics work.
+- [ ] Waveform and visualizer data come from the playback pipeline.
 
-## Phase 7 — TV / Anime [NEXT AFTER MOVIES]
-Series, seasons, episodes, watch progress and optional anime metadata providers.
+### Gate F — Collections and Music Home
+- [ ] Favorites and ratings work.
+- [ ] Recently added/played, most played, never played and top rated are real database queries.
+- [ ] Normal and smart playlists work.
+- [ ] Music Home uses working data rather than mock/placeholder controls.
+- [ ] All Music actions have loading/error/empty states and tests.
 
-## Phase 8 — Manga [FOUNDATION EXISTS]
-Dedicated UI/API concepts exist. Next: real plugin architecture and optional Mihon/Suwayomi-compatible source/extension integration, downloads and reader.
+## Phase 2 — Movies / TV / Anime
+Resume only after Phase 1 passes. Align existing implementations with the canonical platform pipeline, then complete watch state, metadata, artwork and playback.
 
-## Phase 9 — Books [FOUNDATION EXISTS]
-Dedicated UI/API concepts exist. Next: canonical scanner integration, EPUB/PDF metadata, reader and complete persistence.
+## Phase 3 — Manga
+Complete real plugin/source architecture, reader, downloads, progress and optional integrations.
 
-## Phase 10 — Unified platform experience
-Cross-media dashboard, continue listening/watching/reading, activity, favorites, recommendations and library health.
+## Phase 4 — Books
+Complete canonical scanner integration, metadata, covers, reading progress and readers.
 
-## Phase 11 — Windows productization
-Desktop wrapper, installer, associations, media keys, notifications, startup/tray and backup/restore.
+## Phase 5 — Unified dashboard
+Continue Listening/Watching/Reading, recent activity, favorites and cross-media discovery built on verified catalogue data.
 
-## Phase 12 — Optional network mode
-LAN access, authentication, responsive clients and multiple-client support. This phase must not compromise the local-first model.
+## Phase 6 — Windows productization
+Desktop wrapper, installer, file associations, media keys, notifications, startup/tray and backup/restore.
 
-## Current milestone: Platform Foundation Hardening
-
-### Gate A — Canonical contracts
-- [ ] Core media/source/file/artwork contracts audited and documented.
-- [ ] Common API error and pagination contracts defined.
-- [ ] Common background job contract defined.
-
-### Gate B — Unified scanner/indexer
-- [ ] One scanner pipeline owns filesystem discovery.
-- [ ] Media handlers are capability-based.
-- [ ] Upserts are idempotent.
-- [ ] Missing files are recoverable.
-- [ ] Scan progress/cancel/retry is observable.
-
-### Gate C — Metadata/artwork
-- [ ] Local metadata is separated from external enrichment.
-- [ ] Provenance/confidence exists.
-- [ ] Embedded artwork is extracted/cached.
-- [ ] Providers are optional and cancellable.
-
-### Gate D — Search/health
-- [ ] Global cross-media search consumes canonical index.
-- [ ] Incremental and recovery reindex work.
-- [ ] Library health exposes actionable failures.
-
-Do not begin a later feature because it looks visually complete. Platform correctness takes precedence over additional dashboard screens.
+## Rule
+Do not advance because a screen looks finished. Functional correctness, data safety and test evidence are the gate.
