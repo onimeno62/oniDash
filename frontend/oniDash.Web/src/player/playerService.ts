@@ -20,7 +20,32 @@ class PlayerService {
     this.audio.addEventListener('ended', () => void this.advance(true));
     this.audio.addEventListener('error', () => this.patch({ playing: false, error: 'The audio stream could not be loaded or decoded.' }));
     this.restore();
+    this.installMediaSession();
   }
+
+  private installMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    const session = navigator.mediaSession;
+    const bind = (action: MediaSessionAction, handler: () => void) => { try { session.setActionHandler(action, handler); } catch { /* browser does not support this action */ } };
+    bind('play', () => { void this.audio.play().catch(() => this.patch({ error: 'Playback could not start.' })); });
+    bind('pause', () => this.audio.pause());
+    bind('previoustrack', () => this.previous());
+    bind('nexttrack', () => void this.advance());
+    bind('seekbackward', () => this.seek(this.state.position - 10));
+    bind('seekforward', () => this.seek(this.state.position + 10));
+    bind('seekto', () => undefined);
+  }
+
+  private updateMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    if (!this.state.current) { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; return; }
+    const track = this.state.current;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: track.title, artist: track.artistName ?? 'Unknown artist', album: track.albumTitle ?? 'Unknown album', artwork: track.albumId && track.hasCover ? [{ src: `/api/music/albums/${track.albumId}/cover` }] : [] });
+      navigator.mediaSession.playbackState = this.state.playing ? 'playing' : 'paused';
+    } catch { /* media session metadata is progressive enhancement */ }
+  }
+
   private restore() {
     try {
       const value = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<PlayerSnapshot> | null;
@@ -28,7 +53,7 @@ class PlayerService {
       this.audio.volume = this.state.volume; this.audio.muted = this.state.muted;
     } catch { /* corrupt local player state is disposable */ }
   }
-  private patch(partial: Partial<PlayerSnapshot>) { this.state = { ...this.state, ...partial }; for (const listener of this.listeners) listener(); }
+  private patch(partial: Partial<PlayerSnapshot>) { this.state = { ...this.state, ...partial }; this.updateMediaSession(); for (const listener of this.listeners) listener(); }
   private persist() { localStorage.setItem(KEY, JSON.stringify({ queue: this.state.queue, queueIndex: this.state.queueIndex, position: this.state.position, repeatMode: this.state.repeatMode, shuffle: this.state.shuffle, gapless: this.state.gapless, volume: this.state.volume, muted: this.state.muted })); }
   private persistPlayback(force: boolean) {
     if (!this.state.current) return;
