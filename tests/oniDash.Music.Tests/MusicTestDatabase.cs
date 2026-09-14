@@ -5,7 +5,7 @@ using oniDash.Music.Persistence;
 
 namespace oniDash.Music.Tests;
 
-/// <summary>Shared in-memory MusicDbContext with the real migration applied.</summary>
+/// <summary>Shared in-memory MusicDbContext with a minimal core-schema shim.</summary>
 public sealed class MusicTestDatabase : IDisposable
 {
     private readonly SqliteConnection _connection;
@@ -14,12 +14,10 @@ public sealed class MusicTestDatabase : IDisposable
     {
         _connection = new SqliteConnection("Filename=:memory:;Foreign Keys=True");
         _connection.Open();
-        Options = new DbContextOptionsBuilder<MusicDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        Options = new DbContextOptionsBuilder<MusicDbContext>().UseSqlite(_connection).Options;
+        CreateCoreSchemaShim();
         using var context = new MusicDbContext(Options);
         context.Database.Migrate();
-        CreateCoreSchemaShim();
     }
 
     public DbContextOptions<MusicDbContext> Options { get; }
@@ -28,16 +26,10 @@ public sealed class MusicTestDatabase : IDisposable
 
     public void Dispose() => _connection.Dispose();
 
-    /// <summary>
-    /// Minimal but faithful core-schema shim: the music schema references the core's
-    /// existing tables by FK (MediaItems, Files, Sources). The real combined database is
-    /// exercised end to end by the API tests; this shim lets catalogue tests verify
-    /// cross-catalogue integrity without referencing the core project.
-    /// </summary>
     private void CreateCoreSchemaShim()
     {
-        using var context = CreateContext();
-        context.Database.ExecuteSqlRaw(
+        using var command = _connection.CreateCommand();
+        command.CommandText =
             """
             CREATE TABLE IF NOT EXISTS "Libraries" (
                 "Id" TEXT NOT NULL PRIMARY KEY,
@@ -70,6 +62,7 @@ public sealed class MusicTestDatabase : IDisposable
                 "MissingSinceUtc" TEXT,
                 "CreatedAtUtc" TEXT NOT NULL
             );
-            """);
+            """;
+        command.ExecuteNonQuery();
     }
 }
