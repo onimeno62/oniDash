@@ -53,6 +53,7 @@ public static class MusicServiceCollectionExtensions
         MusicEndpoints.MapMusicEndpoints(app)
             .MapMusicEngagementEndpoints()
             .MapMusicPlaylistEndpoints()
+            .MapMusicCollectionsEndpoints()
             .MapMusicMetadataEndpoints()
             .MapMusicInsightsEndpoints()
             .MapMusicActionsEndpoints()
