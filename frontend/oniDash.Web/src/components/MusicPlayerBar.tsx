@@ -6,7 +6,7 @@ import { MusicNowPlaying } from './MusicNowPlaying';
 import { MusicVisualizer } from './MusicVisualizer';
 
 export function MusicPlayerBar() {
-  const { current, playing, position, duration, queue, repeatMode, shuffle, toggle, next, previous, seek, setShuffle, cycleRepeat, stop } = usePlayer();
+  const { current, playing, position, duration, queue, repeatMode, shuffle, volume, muted, toggle, next, previous, seek, setShuffle, cycleRepeat, setVolume, setMuted, stop } = usePlayer();
   const [expanded, setExpanded] = useState(false);
   if (!current) return null;
   return <>
@@ -23,6 +23,8 @@ export function MusicPlayerBar() {
         <div className="hidden min-w-0 flex-[1.4] items-center gap-3 md:flex"><span className="w-10 text-right text-[11px] tabular-nums text-white/30">{formatDuration(position)}</span><input aria-label="Seek" type="range" min={0} max={Math.max(1, Math.floor(duration))} value={Math.min(Math.floor(position), Math.max(1, Math.floor(duration)))} onChange={(event) => seek(Number(event.target.value))} className="min-w-0 flex-1 accent-[rgb(124,106,245)]" /><span className="w-10 text-[11px] tabular-nums text-white/30">{formatDuration(duration)}</span></div>
         <button type="button" aria-label={`Shuffle ${shuffle ? 'on' : 'off'}`} aria-pressed={shuffle} onClick={() => setShuffle(!shuffle)} className={`icon-btn hidden sm:inline-grid ${shuffle ? 'text-accent' : ''}`}>⇄</button>
         <button type="button" aria-label={`Repeat ${repeatMode}`} onClick={cycleRepeat} className={`icon-btn hidden sm:inline-grid ${repeatMode !== 'off' ? 'text-accent' : ''}`}>↻</button>
+        <button type="button" aria-label={muted ? 'Unmute' : 'Mute'} onClick={() => setMuted(!muted)} className="icon-btn hidden sm:inline-grid">{muted ? '🔇' : '🔊'}</button>
+        <input aria-label="Volume" type="range" min={0} max={1} step={0.01} value={muted ? 0 : volume} onChange={(event) => setVolume(Number(event.target.value))} className="hidden w-20 accent-[rgb(124,106,245)] lg:block" />
         <button type="button" onClick={() => setExpanded(true)} className="icon-btn" aria-label={`Open player and queue (${queue.length})`}>☷</button>
         <button type="button" aria-label="Stop" onClick={stop} className="icon-btn hidden sm:inline-grid">×</button>
       </div>
