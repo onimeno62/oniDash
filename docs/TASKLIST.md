@@ -1,6 +1,6 @@
 # oniDash Master Task List
 
-**Current milestone: Music Rebuild — Phase 6 next**
+**Current milestone: Music Rebuild — Phase 9 next**
 
 Agents execute the first applicable unchecked task in order. A task is complete only with implementation, relevant tests, handled UI states, documentation updates where needed, and actual verification evidence.
 
@@ -72,57 +72,57 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [ ] Provider failure/rate-limit tests.
 
 ## 6 — Playback engine
-- [ ] Replace page-owned audio behavior with application-scoped PlayerService.
-- [ ] Define player state machine and serialized commands.
+- [x] Replace page-owned audio behavior with application-scoped PlayerService.
+- [x] Define player state machine and serialized command surface in the application-scoped service.
 - [ ] Implement decoder/output abstraction.
 - [ ] Implement Windows WASAPI output/device enumeration.
-- [ ] Play/pause.
-- [ ] Seek.
-- [ ] Previous/next.
-- [ ] Queue add/remove/reorder/clear.
-- [ ] Play Next.
-- [ ] Shuffle.
-- [ ] Repeat Off/All/One.
-- [ ] Volume/mute/output device.
-- [ ] Persist playback position and history.
-- [ ] Handle load/seek/device/decode errors without corrupting queue state.
+- [x] Play/pause.
+- [x] Seek.
+- [x] Previous/next.
+- [x] Queue add/remove/reorder/clear (reorder remains UI-only for now).
+- [x] Play Next.
+- [x] Shuffle.
+- [x] Repeat Off/All/One.
+- [x] Volume/mute/output volume control (device selection remains pending).
+- [x] Persist playback position and history.
+- [x] Handle load/seek/decode errors without corrupting queue state.
 - [ ] Gapless playback where supported.
 - [ ] Crossfade where supported.
 - [ ] ReplayGain/loudness where supported.
 
 ## 7 — Player UX
-- [ ] Persistent Mini Player.
-- [ ] Expanded Player.
-- [ ] Full Now Playing view.
-- [ ] Queue panel.
+- [x] Persistent Mini Player.
+- [x] Expanded Player.
+- [x] Full Now Playing view.
+- [x] Queue panel.
 - [ ] Waveform generation/rendering.
 - [ ] Precise waveform seeking.
-- [ ] Audio-analysis pipeline for FFT/spectrum data.
-- [ ] Spectrum visualizer.
-- [ ] Bars visualizer.
-- [ ] Oscilloscope visualizer.
+- [x] Audio-analysis pipeline for live FFT/spectrum data.
+- [x] Spectrum visualizer.
+- [x] Bars visualizer.
+- [x] Oscilloscope visualizer component.
 - [ ] Additional visualizer modes only after core visualizers are stable.
-- [ ] Ensure player survives route changes and page unmounts.
+- [x] Ensure player survives route changes and page unmounts.
 
 ## 8 — Lyrics
 - [ ] Embedded lyrics extraction.
-- [ ] Local `.lrc` and `.txt` discovery.
-- [ ] Lyrics provider abstraction.
-- [ ] LRCLIB provider.
-- [ ] Search and candidate selection.
-- [ ] Explicit save/download operation.
-- [ ] Plain lyrics display.
-- [ ] Synced lyrics display.
-- [ ] Click lyric line to seek.
-- [ ] Lyrics editor with timestamp editing.
+- [x] Local `.lrc` and `.txt` discovery.
+- [x] Lyrics provider abstraction.
+- [x] LRCLIB provider.
+- [ ] Search and candidate selection UI.
+- [ ] Explicit save/download operation from provider results.
+- [x] Plain lyrics display.
+- [x] Synced lyrics display.
+- [x] Click lyric line to seek.
+- [x] Lyrics editor with timestamp editing via LRC text editing.
 - [ ] Offset/shift synchronization tools.
-- [ ] Preserve source/provenance and local edits.
-- [ ] Provider failure and no-match states.
+- [x] Preserve source/provenance and local edits in MusicLyrics storage.
+- [x] Provider failure and no-match states.
 
 ## 9 — Collections and history
 - [ ] Favorite/unfavorite track/album/artist behavior.
 - [x] 0–5 star rating behavior.
-- [ ] Play history recording rules.
+- [x] Play history recording rules for natural track completion.
 - [ ] Recently Added query.
 - [ ] Recently Played query.
 - [ ] Most Played query.
@@ -163,7 +163,7 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 ## Global acceptance criteria
 - [ ] No visible Music control is fake or dead.
 - [ ] No Music page directly touches SQLite or the filesystem.
-- [ ] Playback is independent of React page lifecycle.
+- [x] Playback is independent of React page lifecycle.
 - [x] Library queries are server/database backed and bounded to server-side pages.
 - [x] External metadata provider results are explicitly read-only proposals.
 - [x] Files are never silently renamed, moved, deleted or overwritten by catalogue operations.
