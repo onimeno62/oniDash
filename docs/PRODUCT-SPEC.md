@@ -1,68 +1,85 @@
 # oniDash Product Specification
 
 **Status:** Canonical product contract
-**Audience:** all human and AI agents
 **Target:** Windows-first, local-first personal media library
 
-## 1. Product vision
-oniDash is a single premium personal media environment for Music, Movies, TV/Anime, Manga, Books and future media types. It combines one local catalogue, one search system, one design language and purpose-built experiences per media type.
+## Product vision
+oniDash is one premium personal media environment for Music, Movies, TV/Anime, Manga, Books and future media types. Each catalogue has specialized UX, while library infrastructure, search, jobs, artwork, health and design remain shared.
 
-## 2. Non-goals
-- Do not become a generic file manager.
-- Do not require cloud services for core library operation.
-- Do not bundle copyrighted media or hard-code piracy sources.
-- Do not make external metadata providers mandatory.
-- Do not silently mutate, move, rename or delete user media.
+## Product principles
+- Local-first: core catalogue and playback/management workflows work without Internet access.
+- Non-destructive: user media is never silently changed.
+- Observable: scans, failures, missing files and provider failures are visible.
+- Recoverable: interrupted work can be retried safely.
+- Contract-first: APIs and domain behavior are explicit and tested.
+- Modular: media-specific logic stays in catalogue modules/plugins.
+- Complete vertical slices: a visible control is not complete until its real operation works and is tested.
 
-## 3. Core user journeys
-1. Add one or more local folders as library sources.
-2. Scan/index media safely in the background.
-3. See accurate library health and scan progress.
-4. Browse each media type using a specialized dashboard.
-5. Search the entire collection from one global search.
-6. Enrich metadata/artwork when desired while retaining local truth.
-7. Play/watch/read media and persist progress.
-8. Recover from disconnected drives, moved files and failed metadata providers without losing catalogue data.
+## Music product contract
+Music must function as a complete local music library manager and player. It must support:
 
-## 4. Product principles
-- Local-first: catalogue and core workflows work offline.
-- Non-destructive: never alter user media without an explicit user action.
-- Observable: jobs, errors, missing files and provider failures are visible.
-- Recoverable: scans and enrichment can be retried safely.
-- Modular: media-specific logic belongs in plugins/modules.
-- Consistent: shared shell and design system, specialized media UX.
-- Contract-first: API DTOs and behavior are explicit and tested.
-- Incremental: complete vertical slices before expanding scope.
+### Library
+- Add/remove multiple music source folders.
+- Full and incremental scans.
+- Filesystem watching/reconciliation.
+- Missing/moved/changed file detection.
+- Songs, folders, albums, artists and genres.
+- Recently added, recently played, most played, never played and top-rated collections.
+- Favorites, ratings, playlists and smart playlists.
+- Server-side search, filtering, sorting and pagination.
 
-## 5. Media capabilities
-### Music
-Artists, albums, tracks, genres, playlists, favourites, history, insights, metadata editing, artwork, playback, queue and lyrics.
+### File management
+- Rename files safely.
+- Move files safely.
+- Delete files only after explicit confirmation.
+- Open file location in Windows Explorer.
+- Bulk operations.
+- Duplicate detection.
+- Template-driven organization with dry-run preview.
 
-### Movies
-Poster library, metadata, watch state, continue watching, resume playback, artwork and video streaming.
+### Metadata and artwork
+- Read and write embedded audio tags.
+- Single-track and bulk metadata editing.
+- Metadata normalization.
+- MusicBrainz and AcoustID identification as optional enrichment.
+- Embedded and local artwork extraction.
+- Artwork provider enrichment with provenance.
+- Preview before applying external metadata.
 
-### TV/Anime
-Series, seasons, episodes, watch progress, continue watching, metadata and artwork. Anime-specific provider integration is optional enrichment.
+### Playback
+- Persistent application-wide playback independent of page lifecycle.
+- Play/pause, seek, previous/next, queue, play-next, shuffle and repeat.
+- Volume and output-device selection.
+- Playback history and resume position.
+- Gapless playback and crossfade where technically supported.
+- ReplayGain/loudness support where available.
+- Windows media-key integration through a platform boundary.
 
-### Manga
-Series, chapters, categories, favourites, reading progress, reader, downloads/offline state, updates and optional Mihon/Suwayomi-compatible provider integration.
+### Lyrics
+- Embedded lyrics.
+- Local `.lrc` and `.txt` lyrics.
+- Provider search and download.
+- Plain and synchronized lyrics.
+- Lyrics editing and timestamp adjustment.
+- Click lyric line to seek.
+- Save lyrics explicitly and preserve source/provenance.
 
-### Books
-Books, authors, series, formats, covers, reading progress, ratings, favourites and EPUB/PDF reader integration.
+### Visual/audio analysis
+- Waveform seeking.
+- Spectrum/FFT data.
+- Spectrum, bars, oscilloscope and other visualizer modes.
+- Visualizer data comes from the playback analysis pipeline, not a second decoder.
 
-## 6. Platform capabilities
-The platform must eventually provide:
-- Library/source management
-- Unified scanner/indexer
-- Metadata normalization
-- Artwork management/cache
-- Global search
-- Background jobs
-- Library health/diagnostics
-- Settings
-- Backup/restore of catalogue state
-- Provider/plugin management
-- Windows integration
+## Music Home
+The Music Home is a presentation surface over working library/player services. It must not be implemented before those services work. It includes Continue Listening, Recently Played, Recently Added, Most Played, Favorites, Top Rated, album/artist/genre discovery and playlists.
 
-## 7. Definition of done
-A feature is not complete until its behavior is implemented, API/UI contracts are aligned, relevant tests exist, error/loading/empty states are handled, documentation is updated, and build/type/test verification has been run where tooling is available.
+## Non-goals
+- Streaming subscriptions as a core requirement.
+- Mandatory cloud accounts.
+- Mandatory external metadata/lyrics providers.
+- Silent metadata replacement.
+- Silent filesystem mutation.
+- Building the Music Home as a mockup while core music operations remain broken.
+
+## Definition of done
+A feature is complete only when its domain operation works end-to-end, API/UI contracts align, relevant tests exist, loading/empty/error states are handled, user data safety is preserved, documentation is current, and build/type/test verification has been run where tooling is available.
