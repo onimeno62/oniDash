@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +47,8 @@ public static class MusicServiceCollectionExtensions
             .MapMusicPlaylistEndpoints()
             .MapMusicMetadataEndpoints()
             .MapMusicInsightsEndpoints()
-            .MapMusicActionsEndpoints();
+            .MapMusicActionsEndpoints()
+            .MapMusicProviderEndpoints();
 
     private static string ResolveConnectionString(IConfiguration configuration)
     {
