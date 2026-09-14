@@ -1,58 +1,67 @@
 # oniDash — AI Agent Operating Instructions
 
 ## Mission
-Build oniDash as a local-first Windows media library platform with a beautiful modern web UI. The application manages music, movies, anime/TV, manga, books/e-books, and future catalogues through independent modules/plugins.
+Build oniDash as a local-first, Windows-first personal media library. Music is the next priority and must be treated as a complete music manager/player, not a decorative dashboard. Other catalogues (Movies, TV/Anime, Manga, Books) remain modular and must not be expanded while the current milestone is incomplete.
 
-## Read before coding
-The canonical project contract is:
-1. `docs/PRODUCT-SPEC.md` — product behavior and non-goals.
-2. `docs/ARCHITECTURE-SPEC.md` — system boundaries and technical contracts.
-3. `docs/UI-SPEC.md` — visual and interaction rules.
-4. `docs/TASKLIST.md` — ordered execution backlog.
-5. `docs/ROADMAP.md` — milestone gates.
+## Canonical documents
+Read these before coding:
+1. `docs/PRODUCT-SPEC.md` — product contract.
+2. `docs/ARCHITECTURE-SPEC.md` — platform architecture and boundaries.
+3. `docs/UI-SPEC.md` — shared visual/interaction rules.
+4. `docs/MUSIC-SPEC.md` — complete Music product contract.
+5. `docs/MUSIC-ARCHITECTURE.md` — Music domain, player, scanner and provider architecture.
+6. `docs/MUSIC-UX.md` — Music information architecture and UX behavior.
+7. `docs/TASKLIST.md` — ordered executable backlog.
+8. `docs/ROADMAP.md` — milestone gates.
+9. `docs/DECISIONS.md` — architecture decisions.
 
-If an implementation conflicts with these documents, stop and resolve the conflict before coding.
+If implementation conflicts with these documents, stop and resolve the conflict before coding.
 
-## Non-negotiable architecture rules
-1. Core must not contain catalogue-specific domain logic.
-2. Catalogue features must be implemented as modules/plugins.
-3. Frontend must not directly access SQLite or the filesystem.
-4. Backend domain/application logic must not depend on React/UI code.
-5. Plugins may depend on Core/Application contracts; Core never depends on plugins.
-6. Prefer capability-based abstractions over type-specific conditionals.
-7. Core library functions must work without Internet access.
-8. External metadata providers are optional enrichment, never the source of truth.
-9. Do not add speculative features before the current milestone is complete.
-10. Every meaningful feature must have tests.
-11. Never silently rename, move, delete, overwrite, or modify user media.
-12. Preserve user data during schema migrations and upgrades.
-13. API routes must never fall through to SPA HTML.
-14. Never expose EF entities directly as public API contracts.
-15. Long-running work must use observable, cancellable jobs.
+## Non-negotiable rules
+1. Inspect existing code before changing it; reuse sound infrastructure and replace broken abstractions instead of layering patches.
+2. Core must not contain catalogue-specific Music logic.
+3. Frontend never accesses SQLite or the filesystem directly.
+4. EF entities are never public API contracts.
+5. Player state and audio playback must live independently of React page lifecycle.
+6. Library queries, sorting, filtering and pagination are server/database operations, not large client-side arrays.
+7. External metadata and lyrics providers are optional enrichment, never local truth.
+8. Never silently rename, move, delete, overwrite, or modify user media.
+9. Destructive/bulk file operations require validation, preview where applicable, explicit confirmation, execution reporting and recoverable failure handling.
+10. Long-running scans, metadata enrichment, lyrics lookup and maintenance use observable cancellable jobs.
+11. Every meaningful feature needs backend and/or frontend tests appropriate to its boundary.
+12. No fake controls, dead buttons, placeholder success states or UI-only features.
+13. Do not mark work complete without actual build/typecheck/test evidence.
+14. Do not claim CI success without CI evidence.
+15. Do not add future catalogue features while the Music rebuild milestone is incomplete.
+
+## Music implementation order
+Follow `docs/TASKLIST.md` exactly. The required order is:
+1. Music domain/library foundation.
+2. Scanner and filesystem reconciliation.
+3. Library browsing, queries and search.
+4. Safe file management and organization.
+5. Metadata/artwork and external identification.
+6. Playback engine and queue.
+7. Player UX, waveform and visualizers.
+8. Lyrics and synchronized lyrics.
+9. Favorites, ratings, history and playlists.
+10. Music Home/dashboard.
+11. Advanced Windows/audio features and hardening.
+
+Do not build the Music Home first. It is the final presentation layer over working capabilities.
 
 ## Workflow
-1. Identify the current milestone in `docs/ROADMAP.md` and first unchecked tasks in `docs/TASKLIST.md`.
-2. Read the relevant specs and skills.
-3. Inspect existing code before designing new code.
-4. Implement the smallest complete vertical slice.
-5. Add/update backend, frontend and integration tests as appropriate.
-6. Run formatter, build, typecheck and tests when tooling is available.
-7. Update docs when behavior or architecture changes.
-8. Report exactly what changed, what was verified, and remaining limitations.
+1. Read the canonical documents.
+2. Inspect relevant existing implementation and tests.
+3. Select the first applicable unchecked task.
+4. Implement one complete vertical slice.
+5. Add regression tests before moving on.
+6. Run formatter, build, typecheck and tests when available.
+7. Update documentation if contracts change.
+8. Report changed files, verification performed, failures and remaining limitations.
+
+## UI direction
+oniDash should feel like a premium desktop music application: calm, modern, cinematic and information-rich. Use artwork where it improves discovery, dense tables where management matters, focused editors for metadata, and a persistent player. Avoid generic SaaS-dashboard patterns, excessive glassmorphism, oversized empty cards and decorative controls without functionality.
 
 ## Git workflow
-- Work from `main`.
-- Create a focused feature/fix/docs branch.
-- Keep commits coherent.
-- Open a PR against `main`.
-- Do not merge unless the user explicitly requests merging.
-- Do not claim CI/build/test success without actual evidence.
-
-## UI
-The UI should feel like one premium application, not several cloned products: dark-first, artwork-heavy, rounded surfaces, subtle depth, strong typography, generous spacing, polished micro-interactions and complete loading/empty/error states. Use reference images only as inspiration; do not copy branding or exact layouts.
-
-## Current execution priority
-Platform foundation → unified scanner/indexer → metadata/artwork → global search/health → Music hardening → Movies/Anime → Manga → Books → unified dashboard → Windows productization.
-
-## When blocked
-Do not invent requirements. Choose the smallest reversible implementation, document the assumption, or ask when the decision materially affects architecture, data integrity, legal/safety boundaries, or user-visible behavior.
+Work from `main` unless a task explicitly requires a focused branch/PR workflow. Keep commits coherent. Never merge a PR unless the user explicitly requests it.
