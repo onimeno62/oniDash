@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore
+        run: dotnet restore oniDash.sln
+      - name: Build
+        run: dotnet build oniDash.sln --configuration Release --no-restore
+      - name: Test
+        run: dotnet test oniDash.sln --configuration Release --no-build --no-restore
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/oniDash.Web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/oniDash.Web/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Typecheck and build
+        run: npm run build
+      - name: Test
+        run: npm test
