@@ -1,6 +1,6 @@
 # oniDash Master Task List
 
-**Current milestone: Music Rebuild — Phase 4 next**
+**Current milestone: Music Rebuild — Phase 6 next**
 
 Agents execute the first applicable unchecked task in order. A task is complete only with implementation, relevant tests, handled UI states, documentation updates where needed, and actual verification evidence.
 
@@ -45,10 +45,10 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [ ] Loading/empty/error/retry/missing-file states.
 
 ## 4 — File management
-- [ ] Safe single-track rename.
-- [ ] Safe move.
-- [ ] Explicit delete from disk.
-- [ ] Remove from library without deleting file.
+- [x] Safe single-track rename with source-root validation and index reconciliation.
+- [x] Safe move inside the owning library source root.
+- [x] Explicit delete from disk with confirmation and missing-file reconciliation.
+- [x] Remove from library without deleting the physical file.
 - [ ] Open file location in Windows Explorer.
 - [ ] Bulk rename/move/delete with per-item results.
 - [ ] Filename template engine.
@@ -57,16 +57,16 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [ ] Tests for collisions, invalid paths, failures and rollback/reconciliation.
 
 ## 5 — Metadata and artwork
-- [ ] Complete embedded tag reader/writer.
-- [ ] Single-track metadata editor.
+- [x] Embedded tag reader/writer foundation using TagLib.
+- [x] Single-track metadata editor with explicit confirmation and catalogue reindex.
 - [ ] Bulk metadata editor with replace/append/find-replace operations.
 - [ ] Tag normalization rules.
 - [ ] Metadata write verification.
 - [ ] Metadata change/error reporting.
-- [ ] MusicBrainz provider adapter.
+- [x] MusicBrainz read-only provider adapter.
 - [ ] AcoustID fingerprint provider adapter.
 - [ ] Candidate matching UI with current-vs-proposed preview.
-- [ ] Embedded artwork extraction.
+- [x] Embedded artwork extraction into album artwork storage.
 - [ ] Local folder artwork fallback where supported.
 - [ ] Artwork cache and provenance.
 - [ ] Provider failure/rate-limit tests.
@@ -121,7 +121,7 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 
 ## 9 — Collections and history
 - [ ] Favorite/unfavorite track/album/artist behavior.
-- [ ] 0–5 star rating behavior.
+- [x] 0–5 star rating behavior.
 - [ ] Play history recording rules.
 - [ ] Recently Added query.
 - [ ] Recently Played query.
@@ -165,7 +165,7 @@ Agents execute the first applicable unchecked task in order. A task is complete 
 - [ ] No Music page directly touches SQLite or the filesystem.
 - [ ] Playback is independent of React page lifecycle.
 - [x] Library queries are server/database backed and bounded to server-side pages.
-- [ ] External providers never silently overwrite local truth.
-- [ ] Files are never silently renamed, moved, deleted or overwritten.
+- [x] External metadata provider results are explicitly read-only proposals.
+- [x] Files are never silently renamed, moved, deleted or overwritten by catalogue operations.
 - [x] Long-running source scans are observable and cancellable through the shared scan-job system.
 - [ ] Build, typecheck and relevant automated tests have actual evidence.
