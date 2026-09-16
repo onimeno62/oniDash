@@ -1,0 +1,8 @@
+{
+  "name": "oniDash",
+  "description": "Local-first media library dashboard and player for music, movies, books, and manga.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
